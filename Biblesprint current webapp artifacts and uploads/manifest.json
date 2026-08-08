@@ -1,0 +1,51 @@
+{
+  "name": "Bible Sprint",
+  "short_name": "Bible Sprint",
+  "description": "A free, structured daily reading plan that takes you through every chapter of the Bible — at your own pace. Read or listen.",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF8EE",
+  "theme_color": "#F43F5E",
+  "categories": ["education", "books", "lifestyle"],
+  "lang": "en-GB",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Bible Sprint — read or listen to the whole Bible"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open today's reading",
+      "short_name": "Today",
+      "url": "/app.html",
+      "description": "Jump straight to today's sprint"
+    }
+  ]
+}

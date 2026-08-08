@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Bible Sprint — Read the whole Bible in 43 days or more</title>
+<meta name="theme-color" content="#3B82F6">
+<meta name="description" content="A structured daily reading plan to take you through the whole Bible in 43 days — or at your own pace. Read or listen to every chapter. Start in Genesis or in Matthew. Free to begin.">
+<meta name="keywords" content="Bible reading plan, read the Bible in 43 days, Bible sprint, whole Bible plan, daily Bible reading, Bible chapters, Bible in a year, scripture reading schedule">
+<meta name="author" content="TLC Consortium Limited">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://www.biblesprint.com/">
+
+<!-- Open Graph (Facebook, WhatsApp, LinkedIn, iMessage previews) -->
+<meta property="og:title" content="Bible Sprint — Read the whole Bible in 43 days or more">
+<meta property="og:description" content="A structured daily reading plan to take you through the whole Bible. Read or listen to every chapter. Pick your pace and finish from Genesis to Revelation or Matthew to Malachi.">
+<meta property="og:url" content="https://www.biblesprint.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Bible Sprint">
+<meta property="og:locale" content="en_GB">
+<meta property="og:image" content="https://www.biblesprint.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bible Sprint — Read the whole Bible in 43 days or more">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bible Sprint — Read the whole Bible in 43 days or more">
+<meta name="twitter:description" content="A structured daily reading plan to take you through the whole Bible. Read or listen to every chapter. Pick your pace and begin.">
+<meta name="twitter:image" content="https://www.biblesprint.com/og-image.png">
+
+<!-- Structured data: WebSite + Organization + SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.biblesprint.com/#organization",
+      "name": "TLC Consortium Limited",
+      "url": "https://www.biblesprint.com/",
+      "founder": { "@type": "Person", "name": "Timi Hyacinth" },
+      "email": "info@tlcblend.com",
+      "address": { "@type": "PostalAddress", "addressCountry": "GB" }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.biblesprint.com/#website",
+      "url": "https://www.biblesprint.com/",
+      "name": "Bible Sprint",
+      "description": "Read the whole Bible in 43 days or more.",
+      "publisher": { "@id": "https://www.biblesprint.com/#organization" },
+      "inLanguage": "en-GB"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Bible Sprint",
+      "url": "https://www.biblesprint.com/app.html",
+      "applicationCategory": "LifestyleApplication",
+      "operatingSystem": "Web, iOS, Android (PWA)",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "GBP" },
+      "description": "A structured daily reading plan to help you read every chapter of the Bible — at your own pace.",
+      "author": { "@id": "https://www.biblesprint.com/#organization" }
+    }
+  ]
+}
+</script>
+
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23000000'/><text x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-size='22' font-weight='800'>BS</text></svg>">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Preload the LCP hero — different sources for mobile vs desktop.
+     The browser picks the right one based on viewport width and WebP support. -->
+<link rel="preload" as="image" href="/cross-hero-mobile.webp" media="(max-width: 720px)" type="image/webp" fetchpriority="high">
+<link rel="preload" as="image" href="/cross-hero.webp" media="(min-width: 721px)" type="image/webp" fetchpriority="high">
+
+<style>
+:root {
+  --accent: #3B82F6; --accent-dark: #2563EB; --accent-soft: #DBEAFE;
+  --coral: #F43F5E; --gold: #F59E0B; --violet: #8B5CF6; --mint: #10B981;
+  --grad-main: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #F43F5E 100%);
+  --grad-hero: linear-gradient(135deg, #1E293B 0%, #3B1F4D 50%, #6B1F3F 100%);
+  --bg: #F6F8FE; --card: #FFFFFF; --text: #0F172A; --muted: #475569;
+  --line: #E2E8F0; --line-soft: #F1F5F9;
+  --radius: 16px; --radius-sm: 10px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- Top bar ---- */
+.nav {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(255,255,255,0.85); backdrop-filter: saturate(1.5) blur(10px);
+  -webkit-backdrop-filter: saturate(1.5) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand {
+  font-weight: 800; font-size: 20px; letter-spacing: -0.01em;
+  background: var(--grad-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.nav-ctas { display: flex; gap: 10px; align-items: center; }
+.nav-cta-signin { color: var(--text); font-weight: 600; padding: 8px 14px; border-radius: 8px; }
+.nav-cta-signin:hover { background: var(--line-soft); text-decoration: none; }
+
+/* ---- Sections ---- */
+section { padding: 72px 20px; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+.wrap-narrow { max-width: 760px; margin: 0 auto; }
+
+h1 { font-size: 48px; line-height: 1.1; letter-spacing: -0.025em; margin: 0 0 16px; font-weight: 900; }
+/* h1 .grad rule removed — "Bible" now inherits white from the hero h1, no gradient. */
+h2 { font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 14px; font-weight: 800; }
+h3 { font-size: 20px; margin: 0 0 8px; font-weight: 700; }
+p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+p { margin: 0 0 14px; color: var(--muted); }
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 26px; border-radius: 12px; font-weight: 700; font-size: 16px;
+  border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s; text-decoration: none;
+  min-height: 52px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #F472B6 0%, #F43F5E 50%, #FB923C 100%);
+  color: white; border-color: transparent;
+  box-shadow: 0 8px 22px rgba(244,63,94,0.32), 0 2px 6px rgba(251,146,60,0.22);
+  letter-spacing: 0.005em;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(244,63,94,0.42), 0 4px 10px rgba(251,146,60,0.32); text-decoration: none; }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--line); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.btn-on-dark { background: white; color: var(--text); border-color: white; }
+.btn-on-dark:hover { background: var(--line-soft); text-decoration: none; }
+
+/* ---- Hero (full-bleed photo) ---- */
+.hero {
+  position: relative;
+  min-height: 78vh;
+  padding: 0;
+  overflow: hidden;
+  display: flex; align-items: flex-end;
+  color: white;
+  isolation: isolate;
+}
+.hero-photo {
+  position: absolute; inset: 0;
+  z-index: -2;
+}
+.hero-photo img {
+  width: 100%; height: 100%; object-fit: cover; object-position: center 35%;
+  display: block;
+}
+/* Lighter gradient mask — new photo has a naturally dark foreground so we let more sunset glow through */
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(15,12,30,0.04) 0%, rgba(15,12,30,0.0) 35%, rgba(15,12,30,0.30) 75%, rgba(15,12,30,0.70) 100%),
+    linear-gradient(90deg, rgba(99,20,90,0.10) 0%, transparent 55%);
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 1100px; margin: 0 auto; padding: 0 24px 80px;
+  width: 100%;
+  position: relative;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.28);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding: 8px 16px; border-radius: 999px;
+  color: white; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.hero-eyebrow .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(135deg, #FCD34D 0%, #F97316 100%);
+}
+.hero h1 {
+  color: white;
+  /* Bigger headline — scales from 46px on phones to 96px on wide desktop */
+  font-size: clamp(46px, 8vw, 96px);
+  line-height: 1.0;
+  letter-spacing: -0.035em;
+  font-weight: 900;
+  margin: 0 0 22px;
+  max-width: 920px;
+  /* Two-layer shadow: tight contrast + soft halo */
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.55),
+    0 6px 28px rgba(0,0,0,0.40);
+}
+/* "Bible" inherits white from h1 — same colour as the rest of the headline.
+   The .grad span is kept in the markup so we can re-add a gradient any time without HTML edits. */
+.hero p.lead {
+  color: white;
+  font-size: clamp(18px, 1.7vw, 24px);
+  font-weight: 500;
+  line-height: 1.5;
+  max-width: 620px;
+  margin: 0 0 34px;
+  /* paint-order + text-stroke gives the body copy a thin dark outline so it stays readable on any patch of sky.
+     Combined with multi-layer text-shadow for soft halo behind. */
+  paint-order: stroke fill;
+  -webkit-text-stroke: 0.5px rgba(0,0,0,0.5);
+  text-shadow:
+    0 1px 3px rgba(0,0,0,0.65),
+    0 2px 14px rgba(0,0,0,0.55),
+    0 0 22px rgba(0,0,0,0.30);
+}
+.hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-ctas .btn-primary {
+  background: linear-gradient(135deg, #F472B6 0%, #F43F5E 50%, #FB923C 100%);
+  color: white; border-color: transparent;
+  box-shadow: 0 14px 36px rgba(244,63,94,0.45), 0 6px 16px rgba(251,146,60,0.32);
+  font-size: 17px; padding: 16px 32px;
+}
+.hero-ctas .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 44px rgba(244,63,94,0.55), 0 8px 20px rgba(251,146,60,0.42); }
+.hero-ctas .btn-on-glass {
+  background: rgba(255,255,255,0.12);
+  border: 1.5px solid rgba(255,255,255,0.4);
+  color: white;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.hero-ctas .btn-on-glass:hover {
+  background: rgba(255,255,255,0.22);
+  border-color: white;
+  text-decoration: none;
+}
+.hero-extra {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 22px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.95);
+  font-size: 14px; line-height: 1.4;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.hero-extra strong { color: white; }
+@media (max-width: 720px) {
+  .hero { min-height: 72vh; }
+  .hero-inner { padding: 0 20px 56px; }
+  /* Bigger on small screens too — clamps with the global rule above */
+  .hero h1 { font-size: clamp(38px, 11vw, 58px); }
+  .hero p.lead { font-size: 17px; -webkit-text-stroke: 0.4px rgba(0,0,0,0.55); }
+}
+@media (max-width: 480px) {
+  .hero-eyebrow { padding: 6px 12px; font-size: 11px; }
+  .hero-extra { font-size: 13px; padding: 8px 12px; }
+  .hero-ctas .btn-primary { padding: 14px 24px; font-size: 16px; }
+}
+
+/* Mobile-first nav button */
+.nav-btn { padding: 10px 18px; min-height: auto; font-size: 14px; }
+@media (max-width: 480px) {
+  .nav-btn { padding: 8px 14px; font-size: 13px; }
+  .nav-cta-signin { padding: 6px 8px; font-size: 14px; }
+  .nav-inner { padding: 12px 16px; }
+  .brand { font-size: 18px; }
+}
+
+/* ---- Founder / social proof ---- */
+.founder {
+  background: white;
+  border-top: 1px solid var(--line);
+}
+.founder-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+  padding: 40px; box-shadow: 0 6px 30px rgba(59,130,246,0.06);
+  position: relative;
+}
+.founder-card::before {
+  content: "\201C"; position: absolute; top: -18px; left: 32px;
+  font-size: 96px; line-height: 1; color: var(--accent); font-family: Georgia, serif; font-weight: 900;
+}
+.founder-quote { font-size: 18px; line-height: 1.7; color: var(--text); margin-bottom: 24px; }
+.founder-sig { display: flex; align-items: center; gap: 14px; border-top: 1px solid var(--line-soft); padding-top: 20px; }
+.founder-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--grad-main); color: white; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 22px;
+}
+.founder-name { font-weight: 700; font-size: 17px; }
+.founder-role { color: var(--muted); font-size: 14px; }
+
+/* ---- How it works ---- */
+.how { background: var(--bg); }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; }
+.step {
+  background: white; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 28px; text-align: left; box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+.step-num {
+  width: 44px; height: 44px; border-radius: 12px; display: inline-flex;
+  align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent);
+  font-weight: 900; font-size: 20px; margin-bottom: 16px;
+}
+.step h3 { color: var(--text); }
+
+/* ---- Different ---- */
+.different { background: white; }
+.benefits { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 32px; }
+.benefits li { display: flex; align-items: flex-start; gap: 12px; font-size: 16px; color: var(--text); }
+.benefits li::before {
+  content: "\2714"; color: white; background: var(--mint); font-weight: 800;
+  width: 24px; height: 24px; border-radius: 50%; min-width: 24px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 13px;
+  margin-top: 1px;
+}
+
+/* ---- Sample day ---- */
+.sample { background: var(--bg); }
+.sample-card {
+  background: white; border: 1px solid var(--line); border-radius: 20px;
+  padding: 36px; box-shadow: 0 6px 30px rgba(59,130,246,0.06); max-width: 560px; margin: 0 auto;
+}
+.sample-card .day-label { font-size: 13px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+.sample-card h3 { font-size: 28px; margin: 6px 0 18px; }
+.sample-sprint {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 0; border-bottom: 1px solid var(--line-soft);
+}
+.sample-sprint:last-of-type { border-bottom: none; }
+.sample-sprint .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.sample-sprint .ref { font-size: 16px; margin-top: 2px; color: var(--text); font-weight: 600; }
+.sample-sprint .chap { font-size: 13px; color: var(--muted); }
+
+/* ---- CTA strip ---- */
+.cta-strip {
+  background: var(--grad-hero); color: white;
+  padding: 80px 20px; text-align: center; position: relative; overflow: hidden;
+}
+.cta-strip::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 60% 30%, rgba(139,92,246,0.35) 0, transparent 60%);
+}
+.cta-strip .wrap { position: relative; z-index: 1; }
+.cta-strip h2 { color: white; font-size: 38px; }
+.cta-strip p.lead { color: rgba(255,255,255,0.85); margin-bottom: 32px; }
+
+/* ---- Community ---- */
+.community { background: white; }
+.community-card {
+  background: linear-gradient(135deg, #DBEAFE 0%, #FCE7F3 100%);
+  border-radius: 20px; padding: 40px; text-align: center;
+}
+.community-card h2 { color: var(--text); margin-top: 8px; }
+
+/* ---- Footer ---- */
+footer {
+  background: #0F172A; color: #CBD5E1;
+  padding: 50px 20px; text-align: center; font-size: 14px;
+}
+footer a { color: #93C5FD; }
+footer .foot-links { margin-bottom: 18px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+footer .foot-brand { font-weight: 800; margin-bottom: 10px;
+  background: var(--grad-main); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 960px) {
+  .hero { padding: 64px 20px 56px; }
+  .hero h1 { font-size: 42px; }
+  .hero p.lead { font-size: 18px; }
+}
+@media (max-width: 720px) {
+  .hero { padding: 48px 20px 44px; }
+  .hero h1 { font-size: 34px; }
+  .hero p.lead { font-size: 16px; }
+  section { padding: 48px 20px; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 24px; line-height: 1.2; }
+  h3 { font-size: 18px; }
+  p.lead { font-size: 17px; }
+  .steps { grid-template-columns: 1fr; gap: 12px; }
+  .step { padding: 22px; }
+  .benefits { grid-template-columns: 1fr; gap: 10px 0; }
+  .founder-card { padding: 24px; }
+  .founder-quote { font-size: 16px; }
+  .cta-strip { padding: 56px 20px; }
+  .cta-strip h2 { font-size: 24px; }
+  .sample-card { padding: 24px; }
+  .sample-card h3 { font-size: 22px; }
+  .community-card { padding: 28px 20px; }
+  .btn { padding: 12px 20px; font-size: 15px; min-height: 48px; width: auto; }
+  .hero-ctas .btn { width: 100%; }
+}
+@media (max-width: 480px) {
+  section { padding: 40px 16px; }
+  .hero { padding: 36px 16px 36px; }
+  .hero h1 { font-size: 28px; }
+  .hero p.lead { font-size: 15px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 22px; }
+  .founder-card { padding: 20px; }
+  .founder-quote { font-size: 15px; line-height: 1.6; }
+  .founder-card::before { font-size: 56px; top: -8px; left: 14px; }
+  .sample-card { padding: 20px; }
+  .cta-strip h2 { font-size: 22px; }
+  .step { padding: 18px; }
+  .step-num { width: 36px; height: 36px; font-size: 16px; }
+  .nav-inner { gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">Bible Sprint</a>
+    <div class="nav-ctas">
+      <a href="/app.html" class="nav-cta-signin">Sign in</a>
+      <a href="/app.html" class="btn btn-primary nav-btn">Open app</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO — full-bleed cross-at-sunset photo with overlay headline -->
+<section class="hero">
+  <div class="hero-photo">
+    <picture>
+      <source media="(max-width: 720px)" srcset="cross-hero-mobile.webp" type="image/webp">
+      <source media="(max-width: 720px)" srcset="cross-hero-mobile.jpg">
+      <source srcset="cross-hero.webp" type="image/webp">
+      <img src="cross-hero.jpg"
+           alt="A wooden cross silhouetted against a golden sunrise over distant mountains"
+           width="2400" height="1200"
+           loading="eager" decoding="async" fetchpriority="high">
+    </picture>
+  </div>
+  <div class="hero-inner">
+    <span class="hero-eyebrow"><span class="dot" aria-hidden="true"></span>Free · Read or listen</span>
+    <h1>Read the whole <span class="grad">Bible</span><br>in 43 days or more</h1>
+    <p class="lead">A structured daily reading plan that takes you through every chapter — at your pace, on any device. Start in Genesis or in Matthew. Finish with clarity.</p>
+    <div class="hero-ctas">
+      <a href="/app.html" class="btn btn-primary">Start reading</a>
+      <a href="#how" class="btn btn-on-glass">See how it works</a>
+    </div>
+    <div class="hero-extra">
+      <span aria-hidden="true">🎧</span>
+      <span>Prefer audio? Every chapter has a built-in <strong>Listen</strong> option in the app.</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER / SOCIAL PROOF -->
+<section class="founder">
+  <div class="wrap-narrow">
+    <div class="founder-card">
+      <p class="founder-quote">Hi, I&rsquo;m Timi. I was inspired to build Bible Sprint after being taught by the Lord how to read the whole Bible in 43 days. Since then many others have joined me in a continuous cycle of reading the Word of God in large volumes, every day. The secret is reading in sprints of 7 chapters straight, then repeat. Reading the Bible in large chunks gives clarity and helps you understand the scriptures in more wholistic ways. It empowers you in many ways and activates a deeper spiritual walk with God. Join me.</p>
+      <div class="founder-sig">
+        <div class="founder-avatar">T</div>
+        <div>
+          <div class="founder-name">Timi Hyacinth</div>
+          <div class="founder-role">Founder, Bible Sprint</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="wrap">
+    <h2 style="text-align:center;">How it works</h2>
+    <p class="lead" style="text-align:center;">3 simple steps. No guesswork. You just read.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Choose your pace</h3>
+        <p>Gentle (1 sprint a day), Steady (2), Brisk (3), or Sprint (4). Finish the whole Bible in 43 days — or up to 170 if you want a gentler rhythm.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Follow the sprints</h3>
+        <p>Each sprint is seven chapters. Tap through a single sprint in a focused sitting. No decisions, no scrolling, no picking &mdash; just read and tick.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Complete the Bible</h3>
+        <p>Journal key verses, observations, applications, and prayers as you go. Finish the Bible cover-to-cover. Start another round.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DIFFERENTIATORS -->
+<section class="different">
+  <div class="wrap-narrow">
+    <h2>What makes this different</h2>
+    <p>Most Bible apps give you tools and leave you to figure out the schedule. Bible Sprint is a structured, finish-able programme.</p>
+    <ul class="benefits">
+      <li><span>Structured — no guessing what to read</span></li>
+      <li><span>Built to finish — every chapter, no gaps, no repeats</span></li>
+      <li><span>Built-in audio for every chapter</span></li>
+      <li><span>Pick your pace — gentle to sprint, 43 days or more</span></li>
+      <li><span>Pick your translation — NIV, ESV, KJV, NLT, and more</span></li>
+      <li><span>Start in Genesis or in Matthew</span></li>
+      <li><span>Read with friends — Sprint Circles for accountability</span></li>
+      <li><span>Choose your colour theme — gold, coral, or deep blue, in Settings</span></li>
+      <li><span>Journal as you read — your notes stay private</span></li>
+      <li><span>Share with friends</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- SAMPLE DAY -->
+<section class="sample">
+  <div class="wrap-narrow" style="text-align:center;">
+    <h2>Your first day, from the app</h2>
+    <p class="lead">Clean, clear, tap through one sprint at a time.</p>
+    <div class="sample-card">
+      <div class="day-label">Day 1</div>
+      <h3>Genesis 1–28</h3>
+      <div class="sample-sprint">
+        <div>
+          <div class="lbl">Sprint 1</div>
+          <div class="ref">Genesis 1–7</div>
+        </div>
+        <div class="chap">7 ch</div>
+      </div>
+      <div class="sample-sprint">
+        <div>
+          <div class="lbl">Sprint 2</div>
+          <div class="ref">Genesis 8–14</div>
+        </div>
+        <div class="chap">7 ch</div>
+      </div>
+      <div class="sample-sprint">
+        <div>
+          <div class="lbl">Sprint 3</div>
+          <div class="ref">Genesis 15–21</div>
+        </div>
+        <div class="chap">7 ch</div>
+      </div>
+      <div class="sample-sprint">
+        <div>
+          <div class="lbl">Sprint 4</div>
+          <div class="ref">Genesis 22–28</div>
+        </div>
+        <div class="chap">7 ch</div>
+      </div>
+      <div style="margin-top: 24px;">
+        <a href="/app.html" class="btn btn-primary" style="width:100%;">Start reading</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRONG CTA -->
+<section class="cta-strip">
+  <div class="wrap">
+    <h2>Ready to read the whole Bible?</h2>
+    <p class="lead">Start your daily habit today. Your first sprint is waiting.</p>
+    <a href="/app.html" class="btn btn-on-dark" style="font-size: 17px; padding: 16px 36px;">Start reading</a>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section class="community">
+  <div class="wrap-narrow">
+    <div class="community-card">
+      <h2>Join the community</h2>
+      <p style="color: var(--text);">Read alongside others on the same journey. Get daily reminders, encouragement, and accountability in our WhatsApp group.</p>
+      <a href="https://chat.whatsapp.com/Kmi27t2mvCB4ed3oqMvdiR?mode=gi_t" target="_blank" rel="noopener" class="btn" style="margin-top: 12px; background:#25D366; color:white; border-color:#25D366; box-shadow: 0 6px 20px rgba(37,211,102,0.3);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="margin-right:2px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Join the WhatsApp group
+      </a>
+      <p style="font-size: 13px; margin-top: 14px;">You can also tap &ldquo;Invite a friend&rdquo; inside the app to send a direct invite.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-brand">Bible Sprint</div>
+  <div class="foot-links">
+    <a href="/about.html">About</a>
+    <a href="/blog/">Blog</a>
+    <a href="/app.html">Open the app</a>
+    <a href="/contact.html">Contact</a>
+    <a href="/privacy.html">Privacy Policy</a>
+  </div>
+  <div>© 2026 TLC Consortium Limited (UK). BibleSprint&trade; is a trademark of TLC Consortium Limited.</div>
+</footer>
+
+<script>
+// Register the service worker for offline caching across the public site.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
