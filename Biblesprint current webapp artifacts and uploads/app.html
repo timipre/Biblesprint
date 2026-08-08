@@ -1330,6 +1330,12 @@ let state = loadCache();
 let currentUser = null;
 let userDocUnsub = null;
 let suppressRenderFromSnapshot = false;
+// Set right before an interactive "sign in to an existing account" call, and
+// consumed by hydrateFromFirestore — distinguishes "guest is signing into an
+// existing account this session" (where local progress could be silently
+// lost) from an ordinary page-reload session restore (where it's expected
+// and safe for cloud data to populate local state).
+let pendingInteractiveSignIn = false;
 // Land on the day the reader left off the first time the app paints with a
 // plan (covers guests, cloud-hydrated users and local-only mode). After that
 // the reader is free to navigate with Prev/Next without being snapped back.
@@ -1350,6 +1356,34 @@ function loadCache() {
 function cacheLocal() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(state)); } catch {} }
 
 // ----- Firestore sync -----
+// True if the local (guest) state has any actual reading progress worth protecting —
+// a ticked sprint or non-empty journal entry in the current run.
+function hasLocalProgress(s) {
+  if (!s || !s.currentPlan) return false;
+  const comp = s.currentPlan.completion || {};
+  if (Object.values(comp).some(arr => Array.isArray(arr) && arr.some(Boolean))) return true;
+  const journal = s.currentPlan.journal || {};
+  return Object.values(journal).some(j => j && Object.values(j).some(v => (v || '').trim().length > 0));
+}
+// Shown only when an interactive sign-in (not a routine session restore) would
+// otherwise silently discard local guest progress by pulling down an existing
+// account's cloud data. Forces an explicit choice — no click-outside dismissal.
+function confirmGuestOverwrite() {
+  return new Promise(resolve => {
+    $('#modal-root').innerHTML = `
+      <div class="modal-bg" id="modal-bg"><div class="modal">
+        <h3>Keep this device's progress, or your account's?</h3>
+        <p>You were reading as a guest on this device, and this account already has saved progress in the cloud.
+        Signing in would normally replace what's on this device with your account's — which would you like to keep?</p>
+        <div class="actions" style="flex-direction:column; gap:8px; align-items:stretch;">
+          <button class="btn btn-primary" id="guestconflict-local">Keep this device's progress</button>
+          <button class="btn" id="guestconflict-cloud">Use my account's saved progress</button>
+        </div>
+      </div></div>`;
+    $('#guestconflict-local').addEventListener('click', () => { $('#modal-root').innerHTML = ''; resolve('local'); });
+    $('#guestconflict-cloud').addEventListener('click', () => { $('#modal-root').innerHTML = ''; resolve('cloud'); });
+  });
+}
 async function hydrateFromFirestore(uid) {
   if (!db) return;
   const ref = doc(db, 'users', uid);
@@ -1357,8 +1391,22 @@ async function hydrateFromFirestore(uid) {
     const snap = await getDoc(ref);
     if (snap.exists()) {
       const data = snap.data();
-      // Cloud is the source of truth for returning users — overwrite local cache.
-      state = { ...structuredClone(defaultState), ...data, tab: state.tab || 'today' };
+      const wasInteractiveSignIn = pendingInteractiveSignIn;
+      pendingInteractiveSignIn = false;
+      if (wasInteractiveSignIn && hasLocalProgress(state)) {
+        const choice = await confirmGuestOverwrite();
+        if (choice === 'local') {
+          // Keep this device's guest progress and push it up instead of pulling cloud down.
+          state = { ...state, name: (state.name || currentUser.displayName || '').trim(), email: currentUser.email || '' };
+          await setDoc(ref, { ...state, updatedAt: new Date().toISOString() }, { merge: true });
+          toast("Kept this device's progress and saved it to your account.");
+        } else {
+          state = { ...structuredClone(defaultState), ...data, tab: state.tab || 'today' };
+        }
+      } else {
+        // Cloud is the source of truth for returning users — overwrite local cache.
+        state = { ...structuredClone(defaultState), ...data, tab: state.tab || 'today' };
+      }
     } else {
       // First-time sign-up — keep whatever progress the guest already had locally
       // and persist it to the cloud so nothing is lost.
@@ -1712,7 +1760,15 @@ async function deleteCircleMessage(circleId, messageId) {
 
 // ----- Helpers -----
 const $ = sel => document.querySelector(sel);
-function todayISO() { return new Date().toISOString().slice(0, 10); }
+// Formats a Date as YYYY-MM-DD using the reader's LOCAL calendar date.
+// Deliberately not toISOString() (always UTC) — a reader outside UTC would
+// otherwise have "today" flip over hours before/after their real local
+// midnight, silently breaking streaks and misfiling readings by day.
+function localISO(d) {
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function todayISO() { return localISO(new Date()); }
 function daysBetween(a, b) {
   const s = new Date(a + 'T00:00:00'), e = new Date(b + 'T00:00:00');
   return Math.floor((e - s) / 86400000);
@@ -2080,6 +2136,7 @@ async function submitAuth() {
       const email = $('#f-email').value.trim();
       const pw = $('#f-pw').value;
       if (!email || !pw) throw new Error("Please enter your email and password.");
+      pendingInteractiveSignIn = true;
       await signInWithEmailAndPassword(auth, email, pw);
       toast('Signed in.');
     } else if (authMode === 'forgot') {
@@ -2092,6 +2149,7 @@ async function submitAuth() {
       return;
     }
   } catch (e) {
+    pendingInteractiveSignIn = false; // sign-in didn't succeed — don't let it affect a later auth event
     err.textContent = friendlyAuthError(e);
   } finally {
     btn.disabled = false; btn.innerHTML = origText;
@@ -2178,7 +2236,7 @@ function renderPaceScreen() {
       <div style="margin-top:18px; display:flex; gap:8px;">
         <button class="btn btn-primary btn-block" id="pace-start" disabled>Begin</button>
       </div>
-      <p style="font-size:13px; color:var(--muted); text-align:center; margin-top:12px;">Once you begin, the pace is fixed for this run. You can change pace anytime from Settings — your journal and history stay with you.</p>
+      <p style="font-size:13px; color:var(--muted); text-align:center; margin-top:12px;">Once you begin, the pace is fixed for this run. You can restart with a new pace anytime from Settings — completed read-throughs are always saved to your History, but an unfinished run's tick-offs and journal are cleared when you restart (export them first if you'd like to keep them).</p>
       <div style="text-align:center; margin-top:14px;">
         ${currentUser
           ? `<button class="btn" id="pace-signout" style="max-width:200px;">Sign out</button>`
@@ -2626,7 +2684,7 @@ function renderToday() {
 
 function tomorrowISO() {
   const d = new Date(); d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 // Push the current plan onto the history archive and bump the lifetime count.
@@ -2921,8 +2979,8 @@ function renderSettings() {
           <input type="date" id="cfg-start" value="${plan.startDate}" max="${todayISO()}" aria-label="Plan start date">
         </div>
         <div class="setting-row" style="display:block;">
-          <button class="btn btn-danger-solid" id="cfg-cancel">Cancel current plan</button>
-          <div class="setting-hint" style="margin-top:8px;">Clears tick-offs and journal for the current run. Your lifetime Bible count stays. You can pick a new pace afterwards.</div>
+          <button class="btn btn-danger-solid" id="cfg-cancel">Restart plan / change pace</button>
+          <div class="setting-hint" style="margin-top:8px;">If this run is already finished, it's saved to your History and your lifetime Bible count goes up — no data lost. If it's still in progress, this clears this run's tick-offs and journal so you can pick a new pace (export first if you want to keep them). Either way you'll land back on pace selection.</div>
         </div>
       </div>` : ''}
       <div class="card">
@@ -3474,24 +3532,35 @@ function formatRelativeDate(iso) {
 
 // ----- Cancel-plan flow (with optional journal export first) -----
 function cancelPlanFlow() {
+  // The message differs depending on whether this run is actually finished:
+  // a finished run's journal is preserved into History (archiveCurrentPlan),
+  // it is NOT cleared — only an in-progress run's tick-offs/journal are lost.
+  const finished = isPlanFinished();
+  const title = finished ? 'Save this Bible and start a new pace?' : 'Restart this plan?';
+  const body = finished
+    ? `This read-through is complete — it’ll be saved to <strong>History</strong> as Bible #${(state.lifetimeCompletions||0)+1}, journal and all. Nothing is cleared. You’ll then pick a new pace.`
+    : `Your tick-offs and this run’s journal will be cleared so you can pick a new pace.
+      Your <strong>lifetime Bible count</strong> and <strong>archived plans</strong> stay safe.`;
+  const tip = finished ? '' : `<p style="margin-top:6px; font-size:14px;">Tip: export this run's journal first so nothing is lost.</p>`;
+  const confirmLabel = finished ? 'Save & start new pace' : 'Yes, restart';
+  const confirmClass = finished ? 'btn-primary' : 'btn-danger-solid';
   $('#modal-root').innerHTML = `
     <div class="modal-bg" id="modal-bg"><div class="modal">
-      <h3>Cancel this plan?</h3>
-      <p>Your tick-offs and current-run journal will be cleared so you can pick a new pace.
-      Your <strong>lifetime Bible count</strong> and <strong>archived plans</strong> stay safe.</p>
-      <p style="margin-top:6px; font-size:14px;">Tip: export this run's journal first so nothing is lost.</p>
+      <h3>${title}</h3>
+      <p>${body}</p>
+      ${tip}
       <div class="actions" style="flex-direction:column; gap:8px; align-items:stretch;">
-        <button class="btn" id="cancel-export">📤 Export journal first</button>
+        ${finished ? '' : '<button class="btn" id="cancel-export">📤 Export journal first</button>'}
         <div style="display:flex; gap:8px;">
           <button class="btn" id="cancel-back" style="flex:1;">Back</button>
-          <button class="btn btn-danger-solid" id="cancel-confirm" style="flex:1;">Yes, cancel plan</button>
+          <button class="btn ${confirmClass}" id="cancel-confirm" style="flex:1;">${confirmLabel}</button>
         </div>
       </div>
     </div></div>`;
   const close = () => $('#modal-root').innerHTML = '';
   $('#cancel-back').addEventListener('click', close);
   $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') close(); });
-  $('#cancel-export').addEventListener('click', () => { exportJournal(); /* leave modal open so they can confirm afterwards */ });
+  $('#cancel-export')?.addEventListener('click', () => { exportJournal(); /* leave modal open so they can confirm afterwards */ });
   $('#cancel-confirm').addEventListener('click', () => {
     close();
     // If the plan was actually finished, preserve it in History before clearing —
@@ -3501,7 +3570,7 @@ function cancelPlanFlow() {
     state.currentPlan = null; state.viewDay = 1; save(); render();
     toast(wasFinished
       ? `Saved to History as Bible #${state.lifetimeCompletions}. Choose a new pace when you are ready.`
-      : 'Plan cancelled. Choose a new pace when you are ready.');
+      : 'Plan restarted. Choose a new pace when you are ready.');
   });
 }
 
