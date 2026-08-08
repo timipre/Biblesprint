@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Offline — Bible Sprint</title>
+<meta name="theme-color" content="#0F172A">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root {
+  --grad-main: linear-gradient(90deg, #3B82F6 0%, #8B5CF6 50%, #F43F5E 100%);
+  --bg: #FFF8EE; --card: #FFFFFF; --text: #2A1B14; --muted: #7A6E64; --line: #F0E5D6;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 16px; line-height: 1.55;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.wrap {
+  max-width: 480px; text-align: center;
+}
+.brand {
+  font-weight: 800; font-size: 22px; letter-spacing: -0.01em;
+  background: var(--grad-main);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  margin-bottom: 28px;
+}
+h1 { font-size: 28px; font-weight: 800; margin: 0 0 12px; letter-spacing: -0.01em; }
+p { color: var(--muted); margin: 0 0 14px; line-height: 1.6; }
+.tip {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px; margin-top: 24px; text-align: left; font-size: 14px;
+}
+.tip strong { color: var(--text); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 26px; border-radius: 12px; font-weight: 700; font-size: 16px;
+  border: 1.5px solid transparent; cursor: pointer; text-decoration: none;
+  background: linear-gradient(135deg, #F472B6 0%, #F43F5E 50%, #FB923C 100%);
+  color: white;
+  box-shadow: 0 8px 22px rgba(244,63,94,0.32), 0 2px 6px rgba(251,146,60,0.22);
+  margin-top: 20px;
+  min-height: 48px;
+}
+.btn:hover { transform: translateY(-1px); }
+.cloud {
+  width: 64px; height: 64px; margin: 0 auto 16px; display: block;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <svg class="cloud" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <path d="M16 44h32a8 8 0 100-16 12 12 0 00-23-3 8 8 0 00-9 19z" fill="#FCE7F3" stroke="#F472B6" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M22 50l-2 4M32 50l-2 4M42 50l-2 4" stroke="#F472B6" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div class="brand">Bible Sprint</div>
+  <h1>You're offline</h1>
+  <p>Looks like you've lost your connection. Don't worry — your reading plan, journal and sprint history are all saved on this device.</p>
+  <p>Reconnect when you can, and your progress will sync automatically.</p>
+  <a href="/app.html" class="btn">Try again</a>
+  <div class="tip">
+    <strong>Tip:</strong> if you've already opened the app once on this device, you can open it again offline — your sprints, journal and history are stored locally and don't need the internet to load.
+  </div>
+</div>
+<script>
+// Auto-retry when connection comes back
+window.addEventListener('online', () => location.href = '/app.html');
+</script>
+</body>
+</html>
