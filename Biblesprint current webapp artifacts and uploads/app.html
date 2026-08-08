@@ -2501,7 +2501,10 @@ function renderToday() {
   const p = planProgress(); const finished = isPlanFinished();
   const journal = getJournal(day); const name = displayName();
   const dayChapters = sprints.reduce((a, s) => a + s.chapters, 0);
-  const enc = encouragementFor(name, p.percent, day - 1, isFinal && done.every(Boolean));
+  // "Victory" should only ever fire when the WHOLE plan is done (finished),
+  // not just because the reader is viewing the last day and ticked it —
+  // an earlier day can still have a gap while this one looks complete.
+  const enc = encouragementFor(name, p.percent, day - 1, isFinal && finished);
   const prompts = getJournalPrompts(day);
 
   const initialCredit = state.currentPlan.creditedByDay?.[day] || 0;
