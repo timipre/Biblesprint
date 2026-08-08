@@ -878,6 +878,20 @@ function paceMeta(n) {
     weeks: (days.length / 7).toFixed(1),
   };
 }
+// Spreads already-completed sprints across as many days of a NEW plan as
+// needed (instead of capping at one day and silently discarding the rest —
+// the earlier behaviour when someone had more credit than one day's pace).
+function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
+  const completion = {}; const creditedByDay = {};
+  let remaining = Math.max(0, totalCredit); let day = 1;
+  while (remaining > 0 && day <= totalDays) {
+    const n = Math.min(sprintsPerDay, remaining);
+    completion[day] = new Array(sprintsPerDay).fill(false).map((_, i) => i < n);
+    creditedByDay[day] = n;
+    remaining -= n; day++;
+  }
+  return { completion, creditedByDay, actualCredited: Math.max(0, totalCredit) - remaining };
+}
 
 // ----- Encouragements -----
 const ENC_POOL = [
@@ -1015,8 +1029,10 @@ const defaultState = {
   lifetimeCompletions: 0,
   archive: [],
   currentPlan: null,
+  pausedRuns: [],           // unfinished runs set aside by a mid-run pace change — {pausedAt, startedAt, pace, readingOrder, days (journal), sprintsCompleted}
   pendingStartDate: null,  // set when archiving with "rest today" (= tomorrow) or "continue today" (= today)
-  pendingCredit: 0,         // sprints to pre-tick on Day 1 of next plan (from "continue today")
+  pendingCredit: 0,         // sprints to carry into the next plan, spread across as many days as needed
+  pendingCreditReason: null, // 'finished' (Bible completed) or 'paused' (mid-run pace change) — picks the right pace-screen greeting
   // ----- Streaks & activity -----
   lastActiveDate: null,     // ISO date of the last day the user ticked or journalled
   longestStreak: 0,         // most consecutive fully-ticked days, ever
@@ -2178,10 +2194,13 @@ function renderPaceScreen() {
   const today = todayISO(); const name = displayName();
   const life = state.lifetimeCompletions || 0;
   const pending = state.pendingCredit || 0;
-  const greet = life === 0
-    ? `Welcome, ${name}. Read the whole Bible in 43 days or more \u2014 pick your pace below, and choose where you\u2019d like to start.`
-    : pending > 0
-      ? `Welcome back, ${name} \u2014 Bible #${life} complete. Pick a pace and your first ${pending} sprint${pending===1?'':'s'} today will be credited from what you just read.`
+  const creditReason = state.pendingCreditReason;
+  const greet = pending > 0
+    ? (creditReason === 'paused'
+        ? `Welcome back, ${name} \u2014 pick a new pace. ${pending} sprint${pending===1?'':'s'} you already read will carry straight over, no re-reading.`
+        : `Welcome back, ${name} \u2014 Bible #${life} complete. Pick a pace and ${pending} sprint${pending===1?'':'s'} from what you just read will be credited.`)
+    : life === 0
+      ? `Welcome, ${name}. Read the whole Bible in 43 days or more \u2014 pick your pace below, and choose where you\u2019d like to start.`
       : `Welcome back, ${name} \u2014 you've read the Bible ${life} time${life === 1 ? '' : 's'} already. Ready for another?`;
   const options = [1, 2, 3, 4].map(p => {
     const m = paceMeta(p);
@@ -2236,7 +2255,7 @@ function renderPaceScreen() {
       <div style="margin-top:18px; display:flex; gap:8px;">
         <button class="btn btn-primary btn-block" id="pace-start" disabled>Begin</button>
       </div>
-      <p style="font-size:13px; color:var(--muted); text-align:center; margin-top:12px;">Once you begin, the pace is fixed for this run. You can restart with a new pace anytime from Settings — completed read-throughs are always saved to your History, but an unfinished run's tick-offs and journal are cleared when you restart (export them first if you'd like to keep them).</p>
+      <p style="font-size:13px; color:var(--muted); text-align:center; margin-top:12px;">You can change pace anytime from Settings — sprints you've already read carry over to the new pace, and this run's journal is kept under History. Nothing is deleted.</p>
       <div style="text-align:center; margin-top:14px;">
         ${currentUser
           ? `<button class="btn" id="pace-signout" style="max-width:200px;">Sign out</button>`
@@ -2269,16 +2288,10 @@ function renderPaceScreen() {
   $('#pace-start').addEventListener('click', () => {
     if (!chosen) return;
     const start = $('#start-date').value || today;
-    // If we have a pending credit (from "continue today" at archive), pre-tick that many sprints of Day 1
-    const creditRaw = Math.max(0, Math.min(chosen, state.pendingCredit || 0));
-    const completion = {};
-    let initialCreditCount = 0;
-    if (creditRaw > 0) {
-      const day1 = new Array(chosen).fill(false);
-      for (let i = 0; i < creditRaw; i++) day1[i] = true;
-      completion[1] = day1;
-      initialCreditCount = creditRaw;
-    }
+    // If we have a pending credit (from finishing, or from a mid-run pace change),
+    // spread it across as many days of the new plan as it takes \u2014 not capped to Day 1.
+    const totalDays = paceMeta(chosen).days;
+    const { completion, creditedByDay, actualCredited } = buildCreditCompletion(state.pendingCredit || 0, chosen, totalDays);
     state.currentPlan = {
       pace: chosen,
       readingOrder: chosenOrder,
@@ -2286,15 +2299,16 @@ function renderPaceScreen() {
       completion,
       journal: {},
       reminderTime: null,
-      initialCreditCount,
+      creditedByDay,
     };
     // Clear pending transition values
     state.pendingStartDate = null;
     state.pendingCredit = 0;
+    state.pendingCreditReason = null;
     state.viewDay = openingDay(); state.tab = 'today'; viewDayInitialized = true;
     save(); render();
-    const msg = initialCreditCount > 0
-      ? `Off you go, ${displayName()} \u2014 ${initialCreditCount} sprint${initialCreditCount===1?'':'s'} credited today.`
+    const msg = actualCredited > 0
+      ? `Off you go, ${displayName()} \u2014 ${actualCredited} sprint${actualCredited===1?'':'s'} carried over.`
       : `Off you go, ${displayName()}.`;
     toast(msg);
   });
@@ -2490,7 +2504,7 @@ function renderToday() {
   const enc = encouragementFor(name, p.percent, day - 1, isFinal && done.every(Boolean));
   const prompts = getJournalPrompts(day);
 
-  const initialCredit = (day === 1) ? (state.currentPlan.initialCreditCount || 0) : 0;
+  const initialCredit = state.currentPlan.creditedByDay?.[day] || 0;
   const sprintList = sprints.map((s, i) => {
     const isCredit = i < initialCredit && done[i];
     return `
@@ -2711,6 +2725,7 @@ function archiveAndContinue(mode) {
   // Figure out pending setup for the NEXT plan
   const finalDayIdx = currentPlanDays().length - 1;
   const finalSprintCount = currentPlanDays()[finalDayIdx]?.length || 0;
+  state.pendingCreditReason = 'finished';
   if (mode === 'continue-today') {
     state.pendingStartDate = todayISO();
     state.pendingCredit = finalSprintCount; // credit today's sprints from the just-completed plan
@@ -2733,6 +2748,84 @@ function archiveAndContinue(mode) {
       ? `Bible #${state.lifetimeCompletions} archived. Enjoy the rest \u2014 Day 1 begins tomorrow.`
       : `Bible #${state.lifetimeCompletions} archived. Starting fresh today.`;
   toast(msg);
+}
+
+// Same continue/rest/fresh choice as the Today-tab finish banner, but as a
+// modal reachable from anywhere a finished plan can be acted on (Settings).
+function openFinishChooserModal() {
+  const finalDaySprintCount = currentPlanDays()[currentPlanDays().length - 1]?.length || 0;
+  $('#modal-root').innerHTML = `
+    <div class="modal-bg" id="modal-bg"><div class="modal">
+      <h3>You've finished the whole Bible 🎉</h3>
+      <p>This will be saved to History as Bible #${(state.lifetimeCompletions||0)+1}. What next?</p>
+      <div class="actions" style="flex-direction:column; gap:8px; align-items:stretch;">
+        <button class="btn btn-primary" id="fc-continue-today">Continue today — keep the rhythm (credit ${finalDaySprintCount} sprint${finalDaySprintCount===1?'':'s'})</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="fc-rest-today" style="flex:1;">Rest today</button>
+          <button class="btn" id="fc-fresh-today" style="flex:1;">Start fresh today</button>
+        </div>
+        <button class="btn" id="fc-back">Back</button>
+      </div>
+    </div></div>`;
+  const close = () => $('#modal-root').innerHTML = '';
+  $('#fc-back').addEventListener('click', close);
+  $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') close(); });
+  $('#fc-continue-today').addEventListener('click', () => { close(); archiveAndContinue('continue-today'); });
+  $('#fc-rest-today').addEventListener('click', () => { close(); archiveAndContinue('rest-today'); });
+  $('#fc-fresh-today').addEventListener('click', () => { close(); archiveAndContinue('fresh-today'); });
+}
+
+// Non-destructive mid-run pace/order change: unlike cancelling, this keeps
+// every sprint already read (carried into the new plan as credit, spread
+// across as many days as it takes) and keeps the outgoing run's journal —
+// stashed in state.pausedRuns, visible in History — instead of deleting it.
+function pauseAndChangePaceFlow() {
+  const plan = state.currentPlan;
+  if (!plan) return;
+  const comp = plan.completion || {};
+  const sprintsCompleted = Object.values(comp).reduce((n, arr) => n + (Array.isArray(arr) ? arr.filter(Boolean).length : 0), 0);
+  const hasJournal = Object.values(plan.journal || {}).some(j => j && Object.values(j).some(v => (v || '').trim().length > 0));
+  $('#modal-root').innerHTML = `
+    <div class="modal-bg" id="modal-bg"><div class="modal">
+      <h3>Change pace?</h3>
+      <p>${sprintsCompleted > 0
+        ? `You've read ${sprintsCompleted} sprint${sprintsCompleted===1?'':'s'} on this run — that carries straight over to your new pace, no re-reading.`
+        : `You haven't ticked anything on this run yet, so there's nothing to carry over.`}
+      ${hasJournal ? ` This run's journal is kept — you'll find it under History as a paused run.` : ''}</p>
+      <div class="actions" style="flex-direction:column; gap:8px; align-items:stretch;">
+        <button class="btn" id="pause-export">📤 Export journal first</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="pause-back" style="flex:1;">Back</button>
+          <button class="btn btn-primary" id="pause-confirm" style="flex:1;">Choose new pace</button>
+        </div>
+      </div>
+    </div></div>`;
+  const close = () => $('#modal-root').innerHTML = '';
+  $('#pause-back').addEventListener('click', close);
+  $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') close(); });
+  $('#pause-export').addEventListener('click', () => { exportJournal(); });
+  $('#pause-confirm').addEventListener('click', () => {
+    close();
+    if (sprintsCompleted > 0 || hasJournal) {
+      state.pausedRuns = [{
+        pausedAt: new Date().toISOString(),
+        startedAt: plan.startDate,
+        pace: plan.pace,
+        readingOrder: plan.readingOrder,
+        days: plan.journal || {},
+        sprintsCompleted,
+      }, ...(state.pausedRuns || [])];
+    }
+    state.pendingCreditReason = 'paused';
+    state.pendingStartDate = todayISO();
+    state.pendingCredit = sprintsCompleted;
+    state.currentPlan = null;
+    state.viewDay = 1;
+    save(); render();
+    toast(sprintsCompleted > 0
+      ? `Paused. ${sprintsCompleted} sprint${sprintsCompleted===1?'':'s'} will carry over — pick a new pace.`
+      : 'Pick a new pace when you’re ready.');
+  });
 }
 
 // ----- Overview -----
@@ -2777,8 +2870,22 @@ function renderOverview() {
 }
 
 // ----- History -----
+// Shared by completed-Bible archive entries and paused-run entries — renders
+// each day's journal (verse/observations/application/prayer) that has content.
+function renderJournalEntries(days) {
+  const entries = Object.keys(days || {}).sort((x, y) => +x - +y);
+  return entries.map(d => {
+    const j = days[d] || {}; const parts = [];
+    if (j.verse) parts.push(`<div class="history-entry"><div class="dk">Key verse</div><p>${escapeHtml(j.verse)}</p></div>`);
+    if (j.observations) parts.push(`<div class="history-entry"><div class="dk">Observations</div><p>${escapeHtml(j.observations)}</p></div>`);
+    if (j.application) parts.push(`<div class="history-entry"><div class="dk">Application</div><p>${escapeHtml(j.application)}</p></div>`);
+    if (j.prayer) parts.push(`<div class="history-entry"><div class="dk">Prayer</div><p>${escapeHtml(j.prayer)}</p></div>`);
+    return parts.length ? `<div style="margin-top:12px; padding:10px 0; border-top:1px solid var(--line-soft);"><div style="font-weight:700; font-size:13px; color:var(--accent);">Day ${d}</div>${parts.join('')}</div>` : '';
+  }).filter(Boolean).join('');
+}
 function renderHistory() {
   const archive = state.archive || []; const life = state.lifetimeCompletions || 0;
+  const pausedRuns = state.pausedRuns || [];
   let body;
   if (archive.length === 0) {
     body = `<div class="card">
@@ -2794,15 +2901,7 @@ function renderHistory() {
       const metaLine = (a.manual || a.pace == null)
         ? `Logged read-through · completed ${formatDate(a.completedAt)}`
         : `${paceMeta(a.pace).label} (${a.pace}/day) · ${formatDate(a.startedAt)} → ${formatDate(a.completedAt)}`;
-      const entries = Object.keys(a.days || {}).sort((x, y) => +x - +y);
-      const body = entries.map(d => {
-        const j = a.days[d] || {}; const parts = [];
-        if (j.verse) parts.push(`<div class="history-entry"><div class="dk">Key verse</div><p>${escapeHtml(j.verse)}</p></div>`);
-        if (j.observations) parts.push(`<div class="history-entry"><div class="dk">Observations</div><p>${escapeHtml(j.observations)}</p></div>`);
-        if (j.application) parts.push(`<div class="history-entry"><div class="dk">Application</div><p>${escapeHtml(j.application)}</p></div>`);
-        if (j.prayer) parts.push(`<div class="history-entry"><div class="dk">Prayer</div><p>${escapeHtml(j.prayer)}</p></div>`);
-        return parts.length ? `<div style="margin-top:12px; padding:10px 0; border-top:1px solid var(--line-soft);"><div style="font-weight:700; font-size:13px; color:var(--accent);">Day ${d}</div>${parts.join('')}</div>` : '';
-      }).filter(Boolean).join('');
+      const body = renderJournalEntries(a.days);
       return `
         <div class="history-item" data-idx="${idx}">
           <div class="history-head">
@@ -2824,11 +2923,45 @@ function renderHistory() {
       <button class="btn" id="history-add" style="margin-top:14px;">+ Log a completed Bible</button>
     </div>`;
   }
-  $('#main').innerHTML = `<div class="screen">${body}</div>`;
+  // Paused runs — set aside by a mid-run pace change (pauseAndChangePaceFlow).
+  // Kept separate from completed Bibles since they don't count toward the
+  // lifetime total, but the journal and progress made are still visible here.
+  const pausedBody = pausedRuns.length === 0 ? '' : `<div class="card">
+      <span class="label">Paused runs</span>
+      <p style="margin:0 0 10px; color:var(--muted); font-size:14px;">Runs you switched pace away from mid-read. Nothing here counts toward your lifetime Bible count — it's just kept so the journal isn't lost.</p>
+      ${pausedRuns.map((p, idx) => {
+        const metaLine = `${paceMeta(p.pace).label} (${p.pace}/day) · ${formatDate(p.startedAt)} → paused ${formatDate(p.pausedAt)} · ${p.sprintsCompleted} sprint${p.sprintsCompleted===1?'':'s'} read`;
+        const body = renderJournalEntries(p.days);
+        return `
+        <div class="history-item" data-idx="${idx}">
+          <div class="history-head">
+            <div>
+              <div class="history-title">Paused run</div>
+              <div class="history-meta">${metaLine}</div>
+            </div>
+            ${body ? `<button class="btn" data-ptoggle="${idx}">View</button>` : ''}
+          </div>
+          <div class="history-body">
+            ${body || '<p style="color:var(--muted); font-style:italic;">No journal entries recorded for this run.</p>'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  $('#main').innerHTML = `<div class="screen">${body}${pausedBody}</div>`;
+  // Scoped to the enclosing .card so the archive and paused-runs sections
+  // (each with their own 0-based data-idx) never toggle each other's items.
   document.querySelectorAll('[data-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = btn.dataset.toggle;
-      const item = document.querySelector(`.history-item[data-idx="${idx}"]`);
+      const item = btn.closest('.card').querySelector(`.history-item[data-idx="${idx}"]`);
+      item.classList.toggle('open');
+      btn.textContent = item.classList.contains('open') ? 'Hide' : 'View';
+    });
+  });
+  document.querySelectorAll('[data-ptoggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = btn.dataset.ptoggle;
+      const item = btn.closest('.card').querySelector(`.history-item[data-idx="${idx}"]`);
       item.classList.toggle('open');
       btn.textContent = item.classList.contains('open') ? 'Hide' : 'View';
     });
@@ -2979,8 +3112,8 @@ function renderSettings() {
           <input type="date" id="cfg-start" value="${plan.startDate}" max="${todayISO()}" aria-label="Plan start date">
         </div>
         <div class="setting-row" style="display:block;">
-          <button class="btn btn-danger-solid" id="cfg-cancel">Restart plan / change pace</button>
-          <div class="setting-hint" style="margin-top:8px;">If this run is already finished, it's saved to your History and your lifetime Bible count goes up — no data lost. If it's still in progress, this clears this run's tick-offs and journal so you can pick a new pace (export first if you want to keep them). Either way you'll land back on pace selection.</div>
+          <button class="btn" id="cfg-cancel">Restart plan / change pace</button>
+          <div class="setting-hint" style="margin-top:8px;">If this run is already finished, it's saved to your History and your lifetime Bible count goes up. If it's still in progress, your sprints already read carry straight over to the new pace and this run's journal is kept under History as a paused run — nothing is deleted.</div>
         </div>
       </div>` : ''}
       <div class="card">
@@ -3144,7 +3277,10 @@ function renderSettings() {
   $('#cfg-export')?.addEventListener('click', exportFullData);
   $('#cfg-invite')?.addEventListener('click', shareInvite);
   $('#cfg-cancel')?.addEventListener('click', () => {
-    cancelPlanFlow();
+    // Finished: same continue/rest/fresh choice as the Today-tab celebration banner.
+    // Still in progress: the non-destructive pause-and-carry-over flow — nothing is wiped.
+    if (isPlanFinished()) openFinishChooserModal();
+    else pauseAndChangePaceFlow();
   });
   $('#cfg-delete')?.addEventListener('click', deleteAccountFlow);
   $('#cfg-clear-local')?.addEventListener('click', () => {
@@ -3530,50 +3666,6 @@ function formatRelativeDate(iso) {
   } catch { return ''; }
 }
 
-// ----- Cancel-plan flow (with optional journal export first) -----
-function cancelPlanFlow() {
-  // The message differs depending on whether this run is actually finished:
-  // a finished run's journal is preserved into History (archiveCurrentPlan),
-  // it is NOT cleared — only an in-progress run's tick-offs/journal are lost.
-  const finished = isPlanFinished();
-  const title = finished ? 'Save this Bible and start a new pace?' : 'Restart this plan?';
-  const body = finished
-    ? `This read-through is complete — it’ll be saved to <strong>History</strong> as Bible #${(state.lifetimeCompletions||0)+1}, journal and all. Nothing is cleared. You’ll then pick a new pace.`
-    : `Your tick-offs and this run’s journal will be cleared so you can pick a new pace.
-      Your <strong>lifetime Bible count</strong> and <strong>archived plans</strong> stay safe.`;
-  const tip = finished ? '' : `<p style="margin-top:6px; font-size:14px;">Tip: export this run's journal first so nothing is lost.</p>`;
-  const confirmLabel = finished ? 'Save & start new pace' : 'Yes, restart';
-  const confirmClass = finished ? 'btn-primary' : 'btn-danger-solid';
-  $('#modal-root').innerHTML = `
-    <div class="modal-bg" id="modal-bg"><div class="modal">
-      <h3>${title}</h3>
-      <p>${body}</p>
-      ${tip}
-      <div class="actions" style="flex-direction:column; gap:8px; align-items:stretch;">
-        ${finished ? '' : '<button class="btn" id="cancel-export">📤 Export journal first</button>'}
-        <div style="display:flex; gap:8px;">
-          <button class="btn" id="cancel-back" style="flex:1;">Back</button>
-          <button class="btn ${confirmClass}" id="cancel-confirm" style="flex:1;">${confirmLabel}</button>
-        </div>
-      </div>
-    </div></div>`;
-  const close = () => $('#modal-root').innerHTML = '';
-  $('#cancel-back').addEventListener('click', close);
-  $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') close(); });
-  $('#cancel-export')?.addEventListener('click', () => { exportJournal(); /* leave modal open so they can confirm afterwards */ });
-  $('#cancel-confirm').addEventListener('click', () => {
-    close();
-    // If the plan was actually finished, preserve it in History before clearing —
-    // otherwise a completed read-through would vanish when restarting this way.
-    const wasFinished = isPlanFinished();
-    if (wasFinished) archiveCurrentPlan();
-    state.currentPlan = null; state.viewDay = 1; save(); render();
-    toast(wasFinished
-      ? `Saved to History as Bible #${state.lifetimeCompletions}. Choose a new pace when you are ready.`
-      : 'Plan restarted. Choose a new pace when you are ready.');
-  });
-}
-
 // ----- Password change flow -----
 function changePasswordFlow() {
   $('#modal-root').innerHTML = `
@@ -3732,6 +3824,7 @@ function exportFullData() {
     longestStreak: state.longestStreak || 0,
     currentPlan: state.currentPlan,
     archive: state.archive || [],
+    pausedRuns: state.pausedRuns || [],
   };
   const json = JSON.stringify(payload, null, 2);
   const filename = `biblesprint-data-${todayISO()}.txt`;
