@@ -1069,6 +1069,7 @@ const defaultState = {
   // ----- Streaks & activity -----
   lastActiveDate: null,     // ISO date of the last day the user ticked or journalled
   longestStreak: 0,         // most consecutive fully-ticked days, ever
+  activityDates: {},        // { isoDate: true } — calendar days the user was active, for the streak counter (independent of plan-day numbering)
   // ----- Sprint Circles -----
   circles: [],              // [{id, name, role: 'admin'|'member', joinedAt, inviteCode (admin only cached copy)}]
   // ----- Guest UX -----
@@ -1390,6 +1391,18 @@ let pendingInteractiveSignIn = false;
 // the reader is free to navigate with Prev/Next without being snapped back.
 let viewDayInitialized = false;
 
+// One-time migration for accounts that predate the activityDates streak log:
+// seed a single entry from the old single-value lastActiveDate so their streak
+// doesn't just vanish on the first load — it can only ever read back as 0 or 1
+// (there's no history to reconstruct beyond the one date that was already
+// stored), which can never exceed their preserved longestStreak. Guarded so a
+// returning multi-device user never re-seeds over dates another device wrote.
+function seedActivityDates(s) {
+  if (s.lastActiveDate && Object.keys(s.activityDates || {}).length === 0) {
+    s.activityDates = { [s.lastActiveDate]: true };
+  }
+  return s;
+}
 function loadCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -1399,7 +1412,7 @@ function loadCache() {
     if (merged.audioSource === 'inapp' && !inAppAudioEnabled()) merged.audioSource = 'bibleis'; // Picked in-app but key isn't live yet — fall back gracefully
     // Brand new users (no saved preference, no plan yet) get the best default for the current build
     if (!raw && inAppAudioEnabled()) merged.audioSource = 'inapp';
-    return merged;
+    return seedActivityDates(merged);
   } catch { return structuredClone(defaultState); }
 }
 function cacheLocal() { try { localStorage.setItem(CACHE_KEY, JSON.stringify(state)); } catch {} }
@@ -1450,7 +1463,7 @@ async function hydrateFromFirestore(uid) {
           await setDoc(ref, { ...state, updatedAt: new Date().toISOString() }, { merge: true });
           toast("Kept this device's progress and saved it to your account.");
         } else {
-          state = { ...structuredClone(defaultState), ...data, tab: state.tab || 'today' };
+          state = seedActivityDates({ ...structuredClone(defaultState), ...data, tab: state.tab || 'today' });
         }
       } else {
         // Cloud is the source of truth for returning users — overwrite local cache.
@@ -1542,7 +1555,7 @@ function buildMyStatus() {
     planTotalDays: days ? days.length : null,
     planStartDate: plan ? plan.startDate : null,
     daysFullyDone: p ? p.daysFullyDone : 0,
-    currentDay: plan ? dayFromStart() : null,
+    currentDay: plan ? openingDay() : null,
     chaptersRead: p ? p.chaptersRead : 0,
     percent: p ? p.percent : 0,
     currentStreak: currentStreak(),
@@ -1826,17 +1839,6 @@ function daysBetween(a, b) {
   return Math.floor((e - s) / 86400000);
 }
 function currentPlanDays() { return buildPlan(state.currentPlan.pace, state.currentPlan.readingOrder || 'mm'); }
-function dayFromStart() {
-  if (!state.currentPlan) return 1;
-  const total = currentPlanDays().length;
-  const n = daysBetween(state.currentPlan.startDate, todayISO()) + 1;
-  return Math.min(total, Math.max(1, n));
-}
-// The day the app should open on when the reader returns: today's scheduled
-// reading (based on the plan start date), clamped to the plan length — i.e.
-// exactly what the "Jump to today" button does, applied automatically so the
-// reader never has to hunt for the current day.
-function openingDay() { return dayFromStart(); }
 function getCompletion(dayNum) {
   if (!state.currentPlan) return [];
   const days = currentPlanDays();
@@ -1845,6 +1847,23 @@ function getCompletion(dayNum) {
   const out = new Array(len).fill(false);
   for (let i = 0; i < Math.min(arr.length, len); i++) out[i] = !!arr[i];
   return out;
+}
+// The reader's current day: the OLDEST day that isn't fully finished yet —
+// not a calendar date. Falling behind never skips unread days, since "today"
+// stays pinned to the day that actually needs finishing; catching up just
+// means finishing old days rather than racing a separate "credit" counter.
+// Deliberately derived from completion (not a stored field) so it can never
+// drift out of sync with the ticks themselves.
+function openingDay() {
+  if (!state.currentPlan) return 1;
+  const days = currentPlanDays();
+  for (let n = 1; n <= days.length; n++) {
+    const arr = getCompletion(n);
+    const expected = days[n - 1]?.length || 0;
+    const fullyDone = expected > 0 && arr.length >= expected && arr.slice(0, expected).every(Boolean);
+    if (!fullyDone) return n;
+  }
+  return days.length;
 }
 function setCompletion(dayNum, idx, val) {
   const arr = [...getCompletion(dayNum)]; arr[idx] = val;
@@ -1867,21 +1886,20 @@ function setJournal(dayNum, patch) {
 // Record that the user did something today (ticking or journalling)
 function markActivity() {
   state.lastActiveDate = todayISO();
+  state.activityDates = { ...(state.activityDates || {}), [todayISO()]: true };
 }
-// Walk back from today through fully-done days to compute the current streak
+// A daily habit streak, independent of plan-day numbering: consecutive calendar
+// days (walking back from today) on which the reader ticked a sprint or wrote a
+// journal entry. Falls back to yesterday so the streak doesn't visually zero out
+// the moment midnight passes before the reader has acted today.
 function currentStreak() {
-  if (!state.currentPlan) return 0;
-  const days = currentPlanDays();
-  const planStart = new Date(state.currentPlan.startDate + 'T00:00:00');
-  const today = new Date(todayISO() + 'T00:00:00');
-  const todayPlanDay = Math.min(days.length, Math.max(1, Math.floor((today - planStart) / 86400000) + 1));
+  const dates = state.activityDates || {};
+  let cursor = new Date(todayISO() + 'T00:00:00');
+  if (!dates[localISO(cursor)]) cursor.setDate(cursor.getDate() - 1);
   let count = 0;
-  for (let n = todayPlanDay; n >= 1; n--) {
-    const arr = state.currentPlan.completion?.[n] || [];
-    const expected = days[n - 1]?.length || 0;
-    const fullyDone = expected > 0 && arr.length >= expected && arr.slice(0, expected).every(Boolean);
-    if (fullyDone) count++;
-    else break;
+  while (dates[localISO(cursor)]) {
+    count++;
+    cursor.setDate(cursor.getDate() - 1);
   }
   return count;
 }
@@ -2385,7 +2403,7 @@ function renderTopbar() {
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 4.5l3.5 3 3.5-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
-      <div class="progress-chip">Day ${dayFromStart()} / ${currentPlanDays().length}</div>
+      <div class="progress-chip">Day ${openingDay()} / ${currentPlanDays().length}</div>
     </div>`;
   $('#profile-btn')?.addEventListener('click', (e) => { e.stopPropagation(); openProfileMenu(e.currentTarget); });
 }
@@ -2625,7 +2643,7 @@ function renderToday() {
         <div class="encouragement">${enc}</div>
         <div class="day-nav" style="margin-top:14px;">
           <button id="prev-day" ${day===1?'disabled':''}>\u2190 Prev</button>
-          <button id="jump-today" class="today" ${day===dayFromStart()?'disabled':''}>${day===dayFromStart()?'On today':`Jump to today (${dayFromStart()})`}</button>
+          <button id="jump-today" class="today" ${day===openingDay()?'disabled':''}>${day===openingDay()?'On today':`Jump to today (${openingDay()})`}</button>
           <button id="next-day" ${day===totalDays?'disabled':''}>Next \u2192</button>
         </div>
         <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
@@ -2690,7 +2708,7 @@ function renderToday() {
   });
   $('#prev-day')?.addEventListener('click', () => { state.viewDay = Math.max(1, day - 1); save(); render(); });
   $('#next-day')?.addEventListener('click', () => { state.viewDay = Math.min(totalDays, day + 1); save(); render(); });
-  $('#jump-today')?.addEventListener('click', () => { state.viewDay = dayFromStart(); save(); render(); });
+  $('#jump-today')?.addEventListener('click', () => { state.viewDay = openingDay(); save(); render(); });
   $('#share-btn').addEventListener('click', () => shareDay(day));
   $('#share-journal-btn')?.addEventListener('click', () => shareJournal(day));
   $('#invite-friend-btn')?.addEventListener('click', () => shareInvite());
@@ -2873,7 +2891,7 @@ function pauseAndChangePaceFlow() {
 
 // ----- Overview -----
 function renderOverview() {
-  const days = currentPlanDays(); const current = dayFromStart();
+  const days = currentPlanDays(); const current = openingDay();
   const items = days.map((sprints, i) => {
     const dayNum = i + 1;
     const done = getCompletion(dayNum);
@@ -3151,8 +3169,8 @@ function renderSettings() {
         </div>
         <div class="setting-row">
           <div style="flex:1;"><div class="setting-label">Start date</div>
-            <div class="setting-hint">Shifts which day is "today".</div></div>
-          <input type="date" id="cfg-start" value="${plan.startDate}" max="${todayISO()}" aria-label="Plan start date">
+            <div class="setting-hint">When you began this read-through.</div></div>
+          <div style="font-weight:600;">${plan.startDate}</div>
         </div>
         <div class="setting-row" style="display:block;">
           <button class="btn" id="cfg-cancel">Restart plan / change pace</button>
@@ -3287,10 +3305,6 @@ function renderSettings() {
     save();
     const labels = { inapp: 'Audio: in-app player', bibleis: 'Audio: Bible.is (ad-free)', biblegateway: 'Audio: Bible Gateway' };
     toast(labels[state.audioSource] || 'Audio source updated');
-  });
-  $('#cfg-start')?.addEventListener('change', e => {
-    state.currentPlan.startDate = e.target.value; state.viewDay = dayFromStart();
-    save(); render(); toast('Start date updated');
   });
   $('#cfg-reminder').addEventListener('change', e => {
     if (!state.currentPlan) return;
@@ -3894,7 +3908,7 @@ function scheduleReminder() {
 }
 function fireReminder() {
   if (!state.currentPlan) return;
-  const d = dayFromStart(); const done = getCompletion(d); const name = displayName();
+  const d = openingDay(); const done = getCompletion(d); const name = displayName();
   const body = done.every(Boolean)
     ? `${name}, Day ${d} is done. Peek at tomorrow?`
     : `${name}, Day ${d} is waiting. ${done.filter(Boolean).length}/${done.length} sprints done.`;
