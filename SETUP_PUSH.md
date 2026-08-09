@@ -1,6 +1,6 @@
 # BibleSprint — Push notification setup (Hostinger cron + PHP)
 
-Reminders that arrive even when BibleSprint isn't open in a browser tab. No terminal, no Node.js. About **20 minutes** if you've already done `SETUP_REMINDERS.md`'s Part 2 (the Firebase service account) — otherwise add ~10 minutes for that.
+Reminders that arrive even when BibleSprint isn't open in a browser tab. No terminal, no Node.js. About **20 minutes**, including the Firebase service account setup below.
 
 ## What you'll set up
 
@@ -16,7 +16,7 @@ From then on: every 15 minutes, the script checks which signed-in users have a r
 
 ## Part 1 — Firebase service account (skip if already done)
 
-If you already completed Part 2 of `SETUP_REMINDERS.md`, skip straight to Part 2 below — this step is identical and the same file works for both.
+If you already have a `firebase-service-account.json` uploaded to `private/` on Hostinger, skip straight to Part 2 below.
 
 1. Open <https://console.firebase.google.com> → your `bible-sprint` project.
 2. Click the **gear icon** (top-left) → **Project settings**.
@@ -42,7 +42,7 @@ This is a pre-built PHP library (handles the push encryption/signing) — alread
 ### 2.2 `send-push-reminders.php`
 
 1. Go back into `public_html/`.
-2. Upload `send-push-reminders.php` (same folder as `app.html`, `cron-reminders.php`, etc.)
+2. Upload `send-push-reminders.php` (same folder as `app.html`, etc.)
 
 ---
 
@@ -70,8 +70,9 @@ This is a pre-built PHP library (handles the push encryption/signing) — alread
 6. A notification should arrive, tap it — it opens (or focuses) BibleSprint.
 
 If nothing arrives:
-- In hPanel → Cron Jobs, check whether there's a way to view the job's output/logs (append `>> /home/USERNAME/push-log.txt 2>&1` to the command to capture one, same trick as `SETUP_REMINDERS.md`).
+- In hPanel → Cron Jobs, check whether there's a way to view the job's output/logs (append `>> /home/USERNAME/push-log.txt 2>&1` to the command to capture one).
 - Common errors in the log: "Service account not found" (Part 1 not done, or wrong path), "Class not found" (Part 2.1's `vendor` folder missing or incomplete).
+- If Part 1's "Generate new private key" button in Firebase shows a red "Key creation is not allowed on this service account" banner: Google's default security policy blocks new service-account keys on newer Google Cloud projects. Fix it in **console.cloud.google.com** (not the Firebase console) → **IAM & Admin** → **Organisation policies** → filter for `disableServiceAccountKeyCreation` → open it → **Manage policy** → **Override parent's policy** → add a rule with **Enforcement: Off** → **Set policy**. If you don't have permission to do this, click "Fix access" on the error — as the project's sole owner you can usually self-grant the "Organisation Policy Administrator" role from there.
 
 ---
 
