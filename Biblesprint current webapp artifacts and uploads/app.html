@@ -1076,6 +1076,8 @@ const defaultState = {
   circles: [],              // [{id, name, role: 'admin'|'member', joinedAt, inviteCode (admin only cached copy)}]
   // ----- Guest UX -----
   dismissedGuestBanner: false,
+  // ----- Push notifications -----
+  pushSubscriptions: [],    // [{endpoint, keys:{p256dh,auth}, addedAt}] — one per device/browser that opted in; server-sent reminders only reach signed-in accounts (see send-push-reminders.php)
   tab: 'today', viewDay: 1,
 };
 
@@ -1153,6 +1155,62 @@ const BIBLE_BRAIN_KEY = 'REPLACE_ME_WITH_FCBH_KEY';
 const BIBLE_BRAIN_API = 'https://4.dbt.io/api';
 function inAppAudioEnabled() {
   return BIBLE_BRAIN_KEY && !String(BIBLE_BRAIN_KEY).startsWith('REPLACE_ME');
+}
+
+// =============================================================
+// Push notifications (Web Push)
+// =============================================================
+// This is the VAPID *public* key — safe to ship in client code, it only lets
+// a browser identify send-push-reminders.php as the legitimate sender when
+// subscribing. The matching private key lives server-side only, in the PHP
+// script, and is what actually signs outgoing pushes.
+const VAPID_PUBLIC_KEY = 'BPCK6wol4VWZqrovUGHZFGHaBAXuB2KPbSVqv6h95yxZJnrF5IhyRCGeOln7s3Jt5aAroE6Jp2QuAqfrvnTROtQ';
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+// The browser's subscribe() call wants the VAPID key as raw bytes, not the
+// base64url string it's stored/shipped as.
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+// Subscribes this browser to push and saves the subscription to the user's
+// Firestore doc so send-push-reminders.php can find it. Requires being
+// signed in — a guest has no server-reachable document to attach it to.
+// Best-effort throughout: a failure here should never block the (already
+// separately granted) permission from working for the tab-open local path.
+async function subscribeToPush() {
+  if (!pushSupported() || !currentUser) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+    const json = sub.toJSON();
+    const entry = { endpoint: json.endpoint, keys: json.keys, addedAt: new Date().toISOString() };
+    const existing = state.pushSubscriptions || [];
+    state.pushSubscriptions = [...existing.filter(s => s.endpoint !== entry.endpoint), entry];
+    save();
+    return true;
+  } catch (e) { console.warn('Push subscribe failed:', e); return false; }
+}
+// Removes this browser's subscription locally and from Firestore (e.g. when
+// the reader turns notifications back off from Settings).
+async function unsubscribeFromPush() {
+  if (!pushSupported()) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      state.pushSubscriptions = (state.pushSubscriptions || []).filter(s => s.endpoint !== endpoint);
+      save();
+    }
+  } catch (e) { console.warn('Push unsubscribe failed:', e); }
 }
 
 // Bible Brain "fileset" IDs \u2014 Faith Comes By Hearing splits a translation into
@@ -3070,6 +3128,7 @@ function promptLogCompletion() {
 function renderSettings() {
   const notifSupported = 'Notification' in window;
   const notifState = notifSupported ? Notification.permission : 'unsupported';
+  const hasPushSub = pushSupported() && (state.pushSubscriptions || []).length > 0;
   const plan = state.currentPlan; const pace = plan ? paceMeta(plan.pace) : null;
   const name = displayName(); const email = currentUser?.email || '';
   const verified = currentUser?.emailVerified;
@@ -3206,13 +3265,14 @@ function renderSettings() {
         <span class="label">Daily reminder</span>
         <div class="setting-row">
           <div style="flex:1;"><div class="setting-label">Remind me at</div>
-            <div class="setting-hint">Fires when the app is open in a browser tab.</div></div>
+            <div class="setting-hint">${hasPushSub ? 'Arrives even if the app is closed.' : 'Fires while a browser tab is open. Turn on notifications below for reminders that reach you even when it\'s closed.'}</div></div>
           <input type="time" id="cfg-reminder" value="${plan?.reminderTime || ''}" aria-label="Daily reminder time">
         </div>
         <div class="setting-row" style="display:block;">
           <button class="btn btn-primary" id="cfg-notif" ${!notifSupported?'disabled':''}>
-            ${notifState==='granted'?'Notifications enabled \u2713':notifState==='denied'?'Notifications blocked':notifSupported?'Enable notifications':'Not supported'}
+            ${notifState==='granted' ? (hasPushSub ? 'Notifications on (even when closed) \u2713' : 'Notifications on (tab must be open) \u2713') : notifState==='denied'?'Notifications blocked':notifSupported?'Enable notifications':'Not supported'}
           </button>
+          ${notifState==='granted' && !hasPushSub && pushSupported() ? `<div class="setting-hint" style="margin-top:8px;">${currentUser ? 'Tap again to also enable reminders when the app is closed.' : 'Sign in, then tap again, to get reminders even when the app is closed.'}</div>` : ''}
         </div>
       </div>
       <div class="card">
@@ -3316,9 +3376,26 @@ function renderSettings() {
   });
   $('#cfg-notif').addEventListener('click', async () => {
     if (!notifSupported) return;
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') { toast('Notifications enabled'); try { new Notification('BibleSprint', { body: "You're all set." }); } catch {} }
-    else toast('Notifications declined');
+    // Already fully on (push subscribed) — this click means "turn it back off".
+    if (notifState === 'granted' && hasPushSub) {
+      await unsubscribeFromPush();
+      toast('Closed-app reminders turned off. Notifications will still fire while a tab is open.');
+      render();
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm !== 'granted') perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('Notifications declined'); render(); return; }
+    if (!currentUser) {
+      toast('Notifications enabled — sign in for reminders that arrive when the app is closed.');
+      try { new Notification('BibleSprint', { body: "You're all set." }); } catch {}
+    } else if (pushSupported()) {
+      const ok = await subscribeToPush();
+      toast(ok ? "Notifications on — you'll get reminders even when the app's closed." : 'Notifications enabled, but the closed-app reminder could not be set up. Try again shortly.');
+      if (!ok) { try { new Notification('BibleSprint', { body: "You're all set." }); } catch {} }
+    } else {
+      toast('Notifications enabled.');
+    }
     render();
   });
   $('#cfg-change-pw')?.addEventListener('click', changePasswordFlow);

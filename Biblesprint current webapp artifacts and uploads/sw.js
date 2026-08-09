@@ -5,7 +5,7 @@
 // Firebase / Firestore / Bible Brain requests pass straight through — those are dynamic.
 // Bump CACHE_VERSION when you ship a meaningful change to force everyone to refresh their cache.
 
-const CACHE_VERSION = 'biblesprint-v1';
+const CACHE_VERSION = 'biblesprint-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -107,5 +107,38 @@ self.addEventListener('fetch', (event) => {
   // Anything else (xml, txt, .md, etc.) → try network, then cache
   event.respondWith(
     fetch(req).catch(() => caches.match(req))
+  );
+});
+
+// Push: a reminder arrived from send-push-reminders.php while the app wasn't
+// open. Payload is JSON — {title, body, url} — sent as the encrypted push
+// message body; falls back to a generic reminder if parsing fails so a
+// malformed payload never surfaces as a silent no-op.
+self.addEventListener('push', (event) => {
+  let data = { title: 'BibleSprint', body: "Today's reading is waiting.", url: '/app.html' };
+  try { if (event.data) data = { ...data, ...event.data.json() }; } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url },
+      tag: 'biblesprint-reminder', // replaces any earlier unread reminder instead of stacking
+    })
+  );
+});
+
+// Tapping the notification focuses an already-open tab if there is one,
+// otherwise opens a new one at the reminder's target URL.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/app.html';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes('/app.html') && 'focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
