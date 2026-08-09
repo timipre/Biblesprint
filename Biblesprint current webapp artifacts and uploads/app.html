@@ -24,13 +24,15 @@
   /* Default accent = coral. Switch to blue with [data-accent="blue"] (Settings → Appearance).
      --accent is used for accent TEXT on light backgrounds — must pass 4.5:1.
      --accent-dark is used as a BACKGROUND colour with white text on top — must pass 4.5:1.
-     --accent-soft is used for soft fills (completed-sprint backgrounds, etc). */
-  --accent: #F43F5E; --accent-dark: #BE123C; --accent-soft: #FFE4E6;
+     --accent-soft is used for soft fills (completed-sprint backgrounds, etc).
+     Deepened from the original #F43F5E (only 3.5:1 as text, 3.7:1 as a white-text
+     background — both fail AA) to #DC1A38, same rose-red family, 4.7-4.9:1 either way. */
+  --accent: #DC1A38; --accent-dark: #BE123C; --accent-soft: #FFE4E6;
   --accent-on: #FFFFFF;  /* text/icon colour to use on top of --accent-dark backgrounds */
-  --grad-action: linear-gradient(135deg, #F472B6 0%, #F43F5E 50%, #FB923C 100%);
-  --coral: #F43F5E; --gold: #F59E0B; --violet: #8B5CF6; --mint: #10B981;
+  --grad-action: linear-gradient(135deg, #DB2777 0%, #DC1A38 50%, #C2410C 100%);
+  --coral: #DC1A38; --gold: #F59E0B; --violet: #8B5CF6; --mint: #10B981;
   --ok: #10B981; --warn: #F59E0B; --danger: #EF4444;
-  --shadow: 0 1px 2px rgba(244,63,94,0.06), 0 6px 16px rgba(244,63,94,0.12);
+  --shadow: 0 1px 2px rgba(220,26,56,0.06), 0 6px 16px rgba(220,26,56,0.12);
   --radius: 14px; --radius-sm: 10px; --tap: 44px;
 }
 /* === Deep blue accent palette (light mode) ===
@@ -60,7 +62,7 @@
   --bg: #FFF8EE;          /* warm cream */
   --card: #FFFFFF;
   --text: #2A1B14;        /* warm charcoal */
-  --muted: #7A6E64;
+  --muted: #5C4F45;       /* deepened from #7A6E64 (4.7:1, barely passing) to 7.5:1 — hint text was hard to read */
   --line: #F0E5D6;
   --line-soft: #F8F1E5;
   --grad-soft: linear-gradient(135deg, #FFE9D6 0%, #FCE7F3 100%);
@@ -524,7 +526,7 @@ a, button, .nav-tab, .sprint-tick, [role="button"] { touch-action: manipulation;
   color: white;
   border: none; border-radius: 999px;
   font-weight: 700; font-size: 14px; letter-spacing: 0.01em;
-  box-shadow: 0 10px 28px rgba(244,63,94,0.40), 0 4px 8px rgba(251,146,60,0.20);
+  box-shadow: 0 10px 28px rgba(220,26,56,0.40), 0 4px 8px rgba(194,65,12,0.20);
   cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
   -webkit-tap-highlight-color: transparent;
   animation: fab-pop 0.45s cubic-bezier(.18,1.6,.4,1.0);
@@ -1988,10 +1990,10 @@ function applyTheme() {
   document.documentElement.setAttribute('data-theme', mode);
 }
 
-// ----- Accent palette handling (gold by default; can be switched to coral or blue in Settings) -----
+// ----- Accent palette handling (coral by default; can be switched to blue or gold in Settings) -----
 const ACCENT_KEY = 'biblesprint:v1:accent';
 function getStoredAccent() {
-  try { return localStorage.getItem(ACCENT_KEY) || 'gold'; } catch { return 'gold'; }
+  try { return localStorage.getItem(ACCENT_KEY) || 'coral'; } catch { return 'coral'; }
 }
 function setStoredAccent(a) {
   try { localStorage.setItem(ACCENT_KEY, a); } catch {}
@@ -3170,7 +3172,7 @@ function renderSettings() {
         <div class="setting-row">
           <div style="flex:1;"><div class="setting-label">Start date</div>
             <div class="setting-hint">When you began this read-through.</div></div>
-          <div style="font-weight:600;">${plan.startDate}</div>
+          <div style="font-weight:600;">${formatDate(plan.startDate)}</div>
         </div>
         <div class="setting-row" style="display:block;">
           <button class="btn" id="cfg-cancel">Restart plan / change pace</button>
@@ -3854,7 +3856,7 @@ function exportJournal() {
   const lines = [
     'BibleSprint \u2014 Journal export', `Name: ${displayName()}`,
     `Pace: ${pace.label} (${plan.pace}/day, ${pace.days} days)`,
-    `Start date: ${plan.startDate}`, `Exported: ${new Date().toLocaleString()}`, '',
+    `Start date: ${formatDate(plan.startDate)}`, `Exported: ${new Date().toLocaleString()}`, '',
   ];
   const days = currentPlanDays(); let any = false;
   for (let d = 1; d <= days.length; d++) {
