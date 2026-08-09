@@ -87,5 +87,22 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if request.auth != null;
     }
+
+    // -----------------------------------------------------------
+    // Client-side error log — write-only diagnostics so production JS
+    // errors are visible somewhere (Firebase console) instead of silently
+    // invisible. No auth required to write, since guests hit errors too;
+    // no read access at all — even signed-in users can't read this back,
+    // it's for the developer via the console only. Basic shape check only;
+    // this endpoint can still be spammed by a determined bad actor, which
+    // is an accepted trade-off for a low-traffic app with no other option
+    // to capture guest-mode errors.
+    // -----------------------------------------------------------
+    match /errorLogs/{id} {
+      allow create: if request.resource.data.keys().hasAll(['context', 'message', 'at'])
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() < 3000;
+      allow read, update, delete: if false;
+    }
   }
 }
