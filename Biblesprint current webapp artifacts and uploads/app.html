@@ -4093,6 +4093,11 @@ function boot() {
         authVisible = false;
         try { await hydrateFromFirestore(user.uid); } catch (e) { console.error(e); }
         syncCircleSubscriptions();
+        // Real progress data has just landed — re-point the day view at it even
+        // if the 700ms fallback already rendered (and locked in) a premature
+        // guess beforehand. Without this, a slow Firestore fetch permanently
+        // strands the view on Day 1 for the rest of the session.
+        state.viewDay = openingDay(); viewDayInitialized = true;
         rendered = true; render();
         scheduleReminder();
       } else {
