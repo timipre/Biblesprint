@@ -150,6 +150,29 @@ function firestoreUpdateField($projectId, $token, $uid, $field, $stringValue) {
     curl_exec($ch);
 }
 
+// Records which reminder slot(s) (sprint indices within today) already got a
+// push today, so a slot already handled this run doesn't fire again on a
+// later cron tick — mirrors app.html's per-slot reminderTimes model.
+function firestoreUpdatePushSentState($projectId, $token, $uid, $dateISO, array $slots) {
+    $url = "https://firestore.googleapis.com/v1/projects/$projectId/databases/(default)/documents/users/$uid"
+         . '?updateMask.fieldPaths=lastPushSentDate&updateMask.fieldPaths=lastPushSentSlots';
+    $body = ['fields' => [
+        'lastPushSentDate' => ['stringValue' => $dateISO],
+        'lastPushSentSlots' => ['arrayValue' => ['values' => array_map(
+            fn($i) => ['integerValue' => (string)$i], $slots
+        )]],
+    ]];
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_CUSTOMREQUEST => 'PATCH',
+        CURLOPT_POSTFIELDS => json_encode($body),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ["Authorization: Bearer $token", 'Content-Type: application/json'],
+        CURLOPT_TIMEOUT => 30,
+    ]);
+    curl_exec($ch);
+}
+
 // Encodes the same {endpoint, keys:{p256dh,auth}, addedAt} shape app.html
 // writes (see subscribeToPush() in app.html) into Firestore's typed JSON.
 function encodeSubscriptionValue($sub) {
@@ -252,7 +275,10 @@ try {
         try {
             $subs = $data['pushSubscriptions'] ?? [];
             if (empty($subs)) { $skipped++; continue; }
-            if (empty($data['currentPlan']['reminderTime'])) { $skipped++; continue; }
+            // reminderTimes[i] is the reminder time for sprint i within the day
+            // (one slot per sprint-per-day — a 4-sprint/day plan gets up to 4).
+            $times = $data['currentPlan']['reminderTimes'] ?? [];
+            if (empty(array_filter($times))) { $skipped++; continue; }
             if (empty($data['currentPlan']['pace'])) { $skipped++; continue; }
 
             $tz = $data['timezone'] ?? 'Europe/London';
@@ -262,15 +288,10 @@ try {
 
             $h = (int)$userNow->format('H');
             $m = (int)$userNow->format('i');
-            [$rh, $rm] = array_map('intval', explode(':', $data['currentPlan']['reminderTime']));
-
             $nowMinutes = $h * 60 + $m;
-            $targetMinutes = $rh * 60 + $rm;
-            $diff = $nowMinutes - $targetMinutes;
-            if ($diff < 0 || $diff >= 15) { $skipped++; continue; }
 
             $todayISO = $userNow->format('Y-m-d');
-            if (($data['lastPushSentDate'] ?? '') === $todayISO) { $skipped++; continue; }
+            $sentToday = (($data['lastPushSentDate'] ?? '') === $todayISO) ? ($data['lastPushSentSlots'] ?? []) : [];
 
             $days = buildPlan((int)$data['currentPlan']['pace']);
             $completion = $data['currentPlan']['completion'] ?? [];
@@ -282,12 +303,22 @@ try {
             $totalCount = count($sprints);
             $name = explode(' ', $data['name'] ?? 'there')[0];
 
-            if ($doneCount >= $totalCount) {
-                // Cursor day already finished — nothing to nudge about today.
-                firestoreUpdateField($PROJECT_ID, $token, $uid, 'lastPushSentDate', $todayISO);
-                $skipped++; continue;
+            // A slot is due if it has a time set, hasn't already been sent today,
+            // its sprint isn't already read, and its time falls in this run's window.
+            $dueSlots = [];
+            foreach ($times as $i => $t) {
+                if (empty($t)) continue;
+                if (in_array($i, $sentToday, true)) continue;
+                if (!empty($done[$i])) continue;
+                [$rh, $rm] = array_map('intval', explode(':', $t));
+                $diff = $nowMinutes - ($rh * 60 + $rm);
+                if ($diff < 0 || $diff >= 15) continue;
+                $dueSlots[] = $i;
             }
+            if (empty($dueSlots)) { $skipped++; continue; }
 
+            // Multiple due slots in the same run still share one notification —
+            // no point texting the same "Day N is waiting" message twice back to back.
             $body = "$name, Day $dayNum is waiting. $doneCount/$totalCount sprints done.";
             $payload = json_encode(['title' => 'BibleSprint', 'body' => $body, 'url' => '/app.html']);
 
@@ -323,13 +354,14 @@ try {
                 firestoreReplacePushSubscriptions($PROJECT_ID, $token, $uid, $remaining);
             }
 
+            $newSentSlots = array_values(array_unique(array_merge($sentToday, $dueSlots)));
             if ($anySent) {
-                firestoreUpdateField($PROJECT_ID, $token, $uid, 'lastPushSentDate', $todayISO);
+                firestoreUpdatePushSentState($PROJECT_ID, $token, $uid, $todayISO, $newSentSlots);
                 $sent++;
-                log_line("Sent to uid $uid (day $dayNum, tz $tz, " . count($remaining) . " device(s))");
+                log_line("Sent to uid $uid (day $dayNum, slots " . implode(',', $dueSlots) . ", tz $tz, " . count($remaining) . " device(s))");
             } elseif (empty($remaining)) {
                 // Every subscription this user had turned out to be dead.
-                firestoreUpdateField($PROJECT_ID, $token, $uid, 'lastPushSentDate', $todayISO);
+                firestoreUpdatePushSentState($PROJECT_ID, $token, $uid, $todayISO, $newSentSlots);
                 $skipped++;
             } else {
                 $errors++;

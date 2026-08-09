@@ -2414,7 +2414,7 @@ function renderPaceScreen() {
       startDate: start,
       completion,
       journal: {},
-      reminderTime: null,
+      reminderTimes: new Array(chosen).fill(null),
       creditedByDay,
     };
     // Clear pending transition values
@@ -3262,12 +3262,14 @@ function renderSettings() {
         </div>
       </div>
       <div class="card">
-        <span class="label">Daily reminder</span>
-        <div class="setting-row">
-          <div style="flex:1;"><div class="setting-label">Remind me at</div>
-            <div class="setting-hint">${hasPushSub ? 'Arrives even if the app is closed.' : 'Fires while a browser tab is open. Turn on notifications below for reminders that reach you even when it\'s closed.'}</div></div>
-          <input type="time" id="cfg-reminder" value="${plan?.reminderTime || ''}" aria-label="Daily reminder time">
-        </div>
+        <span class="label">${pace && pace.sprintsPerDay > 1 ? 'Daily reminders' : 'Daily reminder'}</span>
+        <div class="setting-hint" style="margin-bottom:10px;">${hasPushSub ? 'Arrive even if the app is closed.' : 'Fire while a browser tab is open. Turn on notifications below for reminders that reach you even when it\'s closed.'}</div>
+        ${plan && pace ? Array.from({ length: pace.sprintsPerDay }).map((_, i) => `
+          <div class="setting-row">
+            <div class="setting-label">${pace.sprintsPerDay > 1 ? `Sprint ${i + 1} time` : 'Remind me at'}</div>
+            <input type="time" class="cfg-reminder-slot" data-slot="${i}" value="${plan.reminderTimes?.[i] || ''}" aria-label="Reminder time for sprint ${i + 1}">
+          </div>
+        `).join('') : ''}
         <div class="setting-row" style="display:block;">
           <button class="btn btn-primary" id="cfg-notif" ${!notifSupported?'disabled':''}>
             ${notifState==='granted' ? (hasPushSub ? 'Notifications on (even when closed) \u2713' : 'Notifications on (tab must be open) \u2713') : notifState==='denied'?'Notifications blocked':notifSupported?'Enable notifications':'Not supported'}
@@ -3368,11 +3370,18 @@ function renderSettings() {
     const labels = { inapp: 'Audio: in-app player', bibleis: 'Audio: Bible.is (ad-free)', biblegateway: 'Audio: Bible Gateway' };
     toast(labels[state.audioSource] || 'Audio source updated');
   });
-  $('#cfg-reminder').addEventListener('change', e => {
-    if (!state.currentPlan) return;
-    state.currentPlan.reminderTime = e.target.value || null; save();
-    scheduleReminder();
-    toast(state.currentPlan.reminderTime ? `Reminder set for ${state.currentPlan.reminderTime}` : 'Reminder cleared');
+  document.querySelectorAll('.cfg-reminder-slot').forEach(el => {
+    el.addEventListener('change', e => {
+      if (!state.currentPlan) return;
+      const i = Number(e.target.dataset.slot);
+      const n = paceMeta(state.currentPlan.pace).sprintsPerDay;
+      if (!Array.isArray(state.currentPlan.reminderTimes)) state.currentPlan.reminderTimes = new Array(n).fill(null);
+      state.currentPlan.reminderTimes[i] = e.target.value || null;
+      save();
+      scheduleReminder();
+      const label = n > 1 ? `Sprint ${i + 1} reminder` : 'Reminder';
+      toast(e.target.value ? `${label} set for ${e.target.value}` : `${label} cleared`);
+    });
   });
   $('#cfg-notif').addEventListener('click', async () => {
     if (!notifSupported) return;
@@ -3976,21 +3985,34 @@ function downloadFile(name, text) {
 }
 
 let reminderTimer = null;
+// Finds whichever reminder slot fires next — today if its time hasn't passed
+// yet, otherwise that same slot tomorrow. Each slot maps 1:1 to a sprint
+// index within the day (reminderTimes[i] reminds about sprint i).
+function nextReminderSlot() {
+  const times = state.currentPlan?.reminderTimes; if (!times || !times.length) return null;
+  const now = new Date(); let best = null;
+  times.forEach((t, i) => {
+    if (!t) return;
+    const [h, m] = t.split(':').map(Number);
+    const target = new Date(); target.setHours(h, m, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    if (!best || target < best.target) best = { target, index: i };
+  });
+  return best;
+}
 function scheduleReminder() {
   if (reminderTimer) { clearTimeout(reminderTimer); reminderTimer = null; }
-  const t = state.currentPlan?.reminderTime; if (!t) return;
-  const [h, m] = t.split(':').map(Number);
-  const now = new Date(); const target = new Date();
-  target.setHours(h, m, 0, 0);
-  if (target <= now) target.setDate(target.getDate() + 1);
-  reminderTimer = setTimeout(() => { fireReminder(); scheduleReminder(); }, target - now);
+  const next = nextReminderSlot(); if (!next) return;
+  reminderTimer = setTimeout(() => { fireReminder(next.index); scheduleReminder(); }, next.target - new Date());
 }
-function fireReminder() {
+function fireReminder(slotIndex) {
   if (!state.currentPlan) return;
   const d = openingDay(); const done = getCompletion(d); const name = displayName();
-  const body = done.every(Boolean)
+  if (done[slotIndex]) return; // that sprint's already read — nothing to nudge about
+  const doneCount = done.filter(Boolean).length;
+  const body = doneCount >= done.length
     ? `${name}, Day ${d} is done. Peek at tomorrow?`
-    : `${name}, Day ${d} is waiting. ${done.filter(Boolean).length}/${done.length} sprints done.`;
+    : `${name}, Day ${d} is waiting. ${doneCount}/${done.length} sprints done.`;
   try {
     if ('Notification' in window && Notification.permission === 'granted') new Notification('BibleSprint', { body, tag: 'bss-daily' });
     else toast(body);
