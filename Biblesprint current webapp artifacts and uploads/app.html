@@ -773,9 +773,10 @@ import {
   collection, query, where, getDocs, runTransaction, arrayUnion, arrayRemove, addDoc,
   persistentLocalCache, persistentMultipleTabManager,
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import { getAnalytics, logEvent, isSupported as analyticsIsSupported } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js';
 
 const isConfigured = !String(FIREBASE_CONFIG.apiKey || '').startsWith('REPLACE_ME');
-let app, auth, db;
+let app, auth, db, analytics;
 if (isConfigured) {
   try {
     app = initializeApp(FIREBASE_CONFIG);
@@ -784,8 +785,40 @@ if (isConfigured) {
     db = initializeFirestore(app, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     });
+    // Not every browser/webview supports Analytics (e.g. some in-app browsers) —
+    // isSupported() checks first so init never throws and breaks the rest of boot.
+    analyticsIsSupported().then(ok => { if (ok) analytics = getAnalytics(app); }).catch(() => {});
   } catch (e) { console.error('Firebase init failed:', e); }
 }
+// Fire-and-forget product analytics — safe to call even before analytics finishes
+// initialising (or on browsers where it's unsupported/blocked); never throws.
+function track(eventName, params) {
+  try { if (analytics) logEvent(analytics, eventName, params); } catch {}
+}
+// Best-effort production error visibility: previously, a JS error in the wild
+// was invisible unless a user happened to report it. Writes are one-way (see
+// firestore.rules — create-only, no read access from the client) so this is
+// purely diagnostic, viewable from the Firebase console, not by other users.
+let lastLoggedError = '';
+function logClientError(context, err) {
+  try {
+    const message = String(err?.message || err || 'Unknown error');
+    const key = context + '|' + message;
+    if (key === lastLoggedError) return; // de-dupe immediate repeats (e.g. a render loop)
+    lastLoggedError = key;
+    if (!db) return;
+    addDoc(collection(db, 'errorLogs'), {
+      context, message,
+      stack: String(err?.stack || '').slice(0, 2000),
+      uid: currentUser?.uid || null,
+      url: location.href,
+      userAgent: navigator.userAgent,
+      at: new Date().toISOString(),
+    }).catch(() => {});
+  } catch {}
+}
+window.addEventListener('error', e => logClientError('window.onerror', e.error || e.message));
+window.addEventListener('unhandledrejection', e => logClientError('unhandledrejection', e.reason));
 
 // ----- Bible data + plan generator -----
 // New Testament first, Old Testament second (Matthew \u2192 Revelation \u2192 Genesis \u2192 Malachi)
@@ -1617,10 +1650,12 @@ async function createCircle(name) {
     state.circles = [...(state.circles || []), { id: circleRef.id, name: trimmed, role: 'admin', joinedAt: now, inviteCode: code }];
     save();
     syncCircleSubscriptions();
+    track('circle_created');
     console.info('[Sprint Circles] created', { id: circleRef.id, code, name: trimmed });
     return { id: circleRef.id, code, name: trimmed };
   } catch (e) {
     console.error('[Sprint Circles] create failed at stage:', stage, '— code:', e?.code || '(none)', '— message:', e?.message, e);
+    logClientError('createCircle:' + stage, e);
     throw translateCircleError(e, 'Could not create circle.');
   }
 }
@@ -1663,6 +1698,7 @@ async function joinCircleByCode(rawCode) {
   state.circles = [...(state.circles || []), { id: circleId, name: circleName, role: 'member', joinedAt: now }];
   save();
   syncCircleSubscriptions();
+  track('circle_joined');
   return { id: circleId, name: circleName };
 }
 
@@ -1813,7 +1849,7 @@ function getCompletion(dayNum) {
 function setCompletion(dayNum, idx, val) {
   const arr = [...getCompletion(dayNum)]; arr[idx] = val;
   state.currentPlan.completion = { ...(state.currentPlan.completion || {}), [dayNum]: arr };
-  if (val) markActivity();
+  if (val) { markActivity(); track('sprint_completed', { pace: state.currentPlan.pace, day: dayNum }); }
   refreshLongestStreak();
   save();
 }
@@ -2147,6 +2183,7 @@ async function submitAuth() {
       try { await sendEmailVerification(cred.user); } catch {}
       // User doc is created by hydrateFromFirestore
       state.name = name;
+      track('sign_up');
       toast(`Welcome, ${name}!`);
     } else if (authMode === 'signin') {
       const email = $('#f-email').value.trim();
@@ -2154,6 +2191,7 @@ async function submitAuth() {
       if (!email || !pw) throw new Error("Please enter your email and password.");
       pendingInteractiveSignIn = true;
       await signInWithEmailAndPassword(auth, email, pw);
+      track('sign_in');
       toast('Signed in.');
     } else if (authMode === 'forgot') {
       const email = $('#f-email').value.trim();
@@ -2307,6 +2345,7 @@ function renderPaceScreen() {
     state.pendingCreditReason = null;
     state.viewDay = openingDay(); state.tab = 'today'; viewDayInitialized = true;
     save(); render();
+    track('plan_started', { pace: chosen, order: chosenOrder, credited_sprints: actualCredited });
     const msg = actualCredited > 0
       ? `Off you go, ${displayName()} \u2014 ${actualCredited} sprint${actualCredited===1?'':'s'} carried over.`
       : `Off you go, ${displayName()}.`;
@@ -2714,6 +2753,7 @@ function archiveCurrentPlan() {
   };
   state.archive = [entry, ...(state.archive || [])];
   state.lifetimeCompletions = (state.lifetimeCompletions || 0) + 1;
+  track('bible_completed', { pace: state.currentPlan.pace, lifetime_count: state.lifetimeCompletions });
   return true;
 }
 
