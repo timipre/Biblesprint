@@ -386,6 +386,16 @@ try {
             if (($data['lastReminderSentDate'] ?? '') === $todayISO) { $skipped++; continue; }
 
             // Compute day number
+            // NOTE: app.html no longer computes "current day" this way — as of the
+            // progress-locked rearchitecture, the client derives the reader's day from
+            // completed sprints (oldest unfinished day), not calendar elapsed-days. This
+            // script still uses the old calendar-math and was left as-is because
+            // `emailRemindersEnabled`/`timezone` (checked above) are never set anywhere
+            // in app.html, so this path appears to be unused in production. If email
+            // reminders are ever wired up for real, this day-number calc needs to be
+            // brought in line with app.html's openingDay() (a scan over `completion` for
+            // the oldest day that isn't fully ticked) — a straight port of the calendar
+            // math above is no longer correct at that point.
             $start = new DateTime($data['currentPlan']['startDate'] . 'T00:00:00', $userTz);
             $today = new DateTime($todayISO . 'T00:00:00', $userTz);
             $days = buildPlan((int)$data['currentPlan']['pace']);
