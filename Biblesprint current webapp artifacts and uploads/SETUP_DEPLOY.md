@@ -47,7 +47,6 @@ SETUP_AUDIO.md       ← Bible Brain (FCBH) API setup walkthrough
 SETUP_BLOG.md        ← how to publish a blog post
 SETUP_CIRCLES.md     ← Firestore security rules for Sprint Circles
 SETUP_SEO.md         ← Search Console / Bing Webmaster onboarding
-SETUP_REMINDERS.md   ← email reminder cron job walkthrough
 SETUP_PUSH.md        ← push notification cron job walkthrough
 ```
 
