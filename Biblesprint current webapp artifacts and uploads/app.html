@@ -2725,6 +2725,7 @@ function renderToday() {
             \uD83D\uDCD6 Read today's passage
           </a>
           <button id="share-btn" class="btn" style="flex:1; min-width:160px;">Share today's post</button>
+          <button id="share-image-btn" class="btn" style="flex:1; min-width:160px;">📸 Share as image</button>
         </div>
       </div>
       <div class="card">
@@ -2783,6 +2784,7 @@ function renderToday() {
   $('#next-day')?.addEventListener('click', () => { followingToday = false; state.viewDay = Math.min(totalDays, day + 1); save(); render(); });
   $('#jump-today')?.addEventListener('click', () => { followingToday = true; state.viewDay = openingDay(); save(); render(); });
   $('#share-btn').addEventListener('click', () => shareDay(day));
+  $('#share-image-btn')?.addEventListener('click', () => shareCard(day));
   $('#share-journal-btn')?.addEventListener('click', () => shareJournal(day));
   $('#invite-friend-btn')?.addEventListener('click', () => shareInvite());
   $('#save-journal-btn')?.addEventListener('click', () => {
@@ -3901,6 +3903,96 @@ function shareDay(day) {
   ];
   const text = lines.join('\n');
   shareOrCopy({ title: `BibleSprint \u2014 Day ${day}`, text, copyHint: 'Copied \u2014 paste into WhatsApp' });
+}
+// Renders a portrait (1080x1920 — Instagram Story / WhatsApp Status sized) progress
+// card as a canvas, using the app's current accent colour so it matches the user's theme.
+function buildShareCardCanvas(day, sprints, totalDays, streak, isFinal) {
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const styles = getComputedStyle(document.documentElement);
+  const c1 = (styles.getPropertyValue('--accent-dark') || '#BE123C').trim();
+  const c2 = (styles.getPropertyValue('--accent') || '#DC1A38').trim();
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#1E1B4B'); grad.addColorStop(0.55, c1); grad.addColorStop(1, c2);
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center'; ctx.fillStyle = '#FFFFFF';
+  const stack = '-apple-system, "Segoe UI", Roboto, sans-serif';
+  ctx.font = `700 48px ${stack}`; ctx.globalAlpha = 0.92;
+  ctx.fillText('BIBLE SPRINT', W / 2, 160); ctx.globalAlpha = 1;
+
+  const dayChapters = sprints.reduce((a, s) => a + s.chapters, 0);
+  if (isFinal) {
+    ctx.font = `800 110px ${stack}`;
+    wrapCenteredText(ctx, 'Bible complete! 🎉', W / 2, 800, W - 160, 128);
+    ctx.font = `500 44px ${stack}`;
+    ctx.fillText(`Finished the whole Bible in ${totalDays} days`, W / 2, 1000);
+  } else if (streak > 1) {
+    ctx.font = `800 220px ${stack}`;
+    ctx.fillText('🔥 ' + streak, W / 2, 800);
+    ctx.font = `600 52px ${stack}`;
+    ctx.fillText('day streak', W / 2, 890);
+    ctx.font = `500 40px ${stack}`;
+    ctx.fillText(`Day ${day} of ${totalDays} · ${dayChapters} chapters today`, W / 2, 990);
+  } else {
+    ctx.font = `800 160px ${stack}`;
+    ctx.fillText(`Day ${day}`, W / 2, 800);
+    ctx.font = `500 44px ${stack}`;
+    ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 900);
+  }
+
+  const encText = ENC_POOL[(day - 1) % ENC_POOL.length] || 'One chapter at a time.';
+  ctx.font = `italic 400 38px ${stack}`; ctx.globalAlpha = 0.9;
+  wrapCenteredText(ctx, `"${encText}"`, W / 2, 1150, W - 220, 54);
+  ctx.globalAlpha = 1;
+
+  ctx.font = `600 34px ${stack}`; ctx.globalAlpha = 0.85;
+  ctx.fillText('biblesprint.com', W / 2, H - 100);
+  ctx.globalAlpha = 1;
+  return canvas;
+}
+// Centered word-wrap for canvas text — ctx.fillText has no built-in wrapping.
+function wrapCenteredText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = ''; const lines = [];
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (line && ctx.measureText(test).width > maxWidth) { lines.push(line); line = w; }
+    else line = test;
+  }
+  if (line) lines.push(line);
+  const startY = y - (lines.length - 1) * lineHeight / 2;
+  lines.forEach((l, i) => ctx.fillText(l, x, startY + i * lineHeight));
+}
+function shareCard(day) {
+  const days = currentPlanDays(); const sprints = days[day - 1];
+  const totalDays = days.length; const isFinal = day === totalDays;
+  const streak = currentStreak();
+  const canvas = buildShareCardCanvas(day, sprints, totalDays, streak, isFinal);
+  const title = 'Bible Sprint';
+  const text = isFinal
+    ? 'I finished reading the whole Bible with Bible Sprint! 🎉 biblesprint.com'
+    : `Day ${day} of ${totalDays} on Bible Sprint 🔥 biblesprint.com`;
+  canvas.toBlob(async (blob) => {
+    if (!blob) { toast('Could not create image'); return; }
+    const file = new File([blob], 'biblesprint.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title, text }); return; }
+      catch (err) {
+        const name = err && (err.name || '');
+        if (name === 'AbortError' || /cancel/i.test(String(err))) return;
+        // fall through to download below
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'biblesprint-card.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast('Image saved — share it from your Photos/Downloads');
+  }, 'image/png');
 }
 // Share via the OS share sheet if available, otherwise fall back to clipboard.
 // Distinguish user cancellation (do nothing — they aborted on purpose) from real errors (fall back to clipboard with a toast).
