@@ -527,7 +527,7 @@ a, button, .nav-tab, .sprint-tick, [role="button"] { touch-action: manipulation;
 
 /* ---- Floating "Save your progress" FAB (guests only) ---- */
 .fab-save {
-  position: fixed; right: 16px; bottom: 86px;
+  position: fixed; right: 16px; bottom: 132px;
   z-index: 40;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 12px 18px; min-height: 48px;
@@ -2382,13 +2382,15 @@ function renderPaceScreen() {
           style="width:100%; padding:12px; font-size:16px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--text); min-height:44px;">
       </div>
       <p style="font-size:13px; color:var(--muted); text-align:center; margin-top:20px;">You can change pace anytime from Settings — sprints you've already read carry over to the new pace, and this run's journal is kept under History. Nothing is deleted.</p>
-      <div style="text-align:center; margin-top:14px;">
-        ${currentUser
-          ? `<button class="btn" id="pace-signout" style="max-width:200px;">Sign out</button>`
-          : `<button class="btn" id="pace-signin" style="max-width:240px;">I already have an account — sign in</button>`}
-      </div>
     </div>
-    <div class="sticky-cta"><button class="btn btn-primary btn-block" id="pace-start" disabled>Begin</button></div>`;
+    <div class="sticky-cta">
+      <div style="text-align:center; margin-bottom:8px; font-size:13px;">
+        ${currentUser
+          ? `<a id="pace-signout" role="button" style="color:var(--muted); font-weight:600; cursor:pointer; text-decoration:underline;">Sign out</a>`
+          : `<a id="pace-signin" role="button" style="color:var(--muted); font-weight:600; cursor:pointer; text-decoration:underline;">I already have an account — sign in</a>`}
+      </div>
+      <button class="btn btn-primary btn-block" id="pace-start" disabled>Begin</button>
+    </div>`;
   let chosen = null;
   const btns = Array.from(document.querySelectorAll('.pace-option'));
   btns.forEach(b => b.addEventListener('click', () => {
