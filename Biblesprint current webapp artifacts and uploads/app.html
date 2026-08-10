@@ -965,42 +965,42 @@ function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
 }
 
 // ----- Encouragements -----
+// Every entry pairs a short scripture quote about the Word of God itself with its
+// reference, so the daily encouragement doubles as a reminder of why the habit
+// matters. Heavy on Psalm 119 (176 verses almost entirely about God's word/law),
+// plus the other classic "word of God" passages from across the rest of the Bible.
 const ENC_POOL = [
-  "Keep going — one step, one chapter, one day at a time.",
-  "The Word is alive in you.",
-  "Small daily steps, massive lifelong results.",
-  "Savour it — you're not in a race.",
-  "Faithful in little, faithful in much.",
-  "Press on — every sprint is a victory.",
-  "Keep the rhythm. Consistency beats intensity.",
-  "The Word refreshes — keep reading.",
-  "Don't break the chain — tomorrow begins strong.",
-  "Discipline today, freedom tomorrow.",
-  "Let the Scripture settle in.",
-  "Keep hunting for gems — they're in every chapter.",
-  "His Word is a lamp to your feet today.",
-  "One open Bible quietly changes everything.",
-  "Slow down, read closely. Speed will come.",
-  "Today's chapter has something just for you.",
-  "Keep showing up. The Word does the rest.",
-  "Read like you're listening — not like you're studying for an exam.",
-  "Heaven cheers when you open this book.",
-  "You're feeding your soul. Don't skip the meal.",
-  "Steady wins. You're proving that.",
-  "Pause on the verse that pulls you. That's the Spirit.",
-  "Same Bible, new grace each morning.",
-  "You don't have to feel it to be doing it. Just keep going.",
-  "Habit becomes hunger. Stay at it.",
-  "One sprint at a time — the whole Bible adds up.",
-  "Let it be a meeting, not a task.",
-  "Better seven imperfect chapters than zero perfect ones.",
-  "He's speaking through whatever you read today.",
-  "Today's reading is a gift to your future self.",
-  "The Word lasts. Whatever else happened today, this stays.",
-  "Bring your real self to this. He can take it.",
-  "Read with curiosity, not pressure.",
-  "Even a slow page is a page.",
-  "You're building the habit of a lifetime.",
+  "“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105",
+  "“I have hidden your word in my heart that I might not sin against you.” — Psalm 119:11",
+  "“Oh, how I love your law! I meditate on it all day long.” — Psalm 119:97",
+  "“Your word is a lamp for today — and this sprint is your light.” — Psalm 119:105",
+  "“How sweet are your words to my taste, sweeter than honey to my mouth.” — Psalm 119:103",
+  "“The unfolding of your words gives light; it gives understanding to the simple.” — Psalm 119:130",
+  "“I will not neglect your word.” — Psalm 119:16",
+  "“Your word, Lord, is eternal; it stands firm in the heavens.” — Psalm 119:89",
+  "“You are my refuge and my shield; I have put my hope in your word.” — Psalm 119:114",
+  "“Direct my footsteps according to your word.” — Psalm 119:133",
+  "“Great peace have those who love your law, and nothing can make them stumble.” — Psalm 119:165",
+  "“Open my eyes that I may see wonderful things in your law.” — Psalm 119:18",
+  "“The law from your mouth is more precious to me than thousands of pieces of silver and gold.” — Psalm 119:72",
+  "“If your law had not been my delight, I would have perished in my affliction.” — Psalm 119:92",
+  "“All your words are true; all your righteous laws are eternal.” — Psalm 119:160",
+  "“My soul is weary with sorrow; strengthen me according to your word.” — Psalm 119:28",
+  "“The word of God is alive and active, sharper than any double-edged sword.” — Hebrews 4:12",
+  "“My word... will not return to me empty, but will accomplish what I desire.” — Isaiah 55:11",
+  "“All Scripture is God-breathed and is useful for teaching, rebuking, correcting and training.” — 2 Timothy 3:16",
+  "“Man shall not live on bread alone, but on every word that comes from the mouth of God.” — Matthew 4:4",
+  "“Faith comes from hearing the message, and the message is heard through the word of Christ.” — Romans 10:17",
+  "“In the beginning was the Word, and the Word was with God, and the Word was God.” — John 1:1",
+  "“This Book of the Law shall not depart from your mouth... then you will be prosperous and successful.” — Joshua 1:8",
+  "“Blessed is the one whose delight is in the law of the Lord — like a tree planted by streams of water.” — Psalm 1:1–3",
+  "“Your words were found, and I ate them, and your word became to me a joy.” — Jeremiah 15:16",
+  "“You have been born again... through the living and enduring word of God.” — 1 Peter 1:23",
+  "“Let the message of Christ dwell among you richly.” — Colossians 3:16",
+  "“Every word of God is flawless; he is a shield to those who take refuge in him.” — Proverbs 30:5",
+  "“Man does not live on bread alone but on every word that comes from the mouth of the Lord.” — Deuteronomy 8:3",
+  "“The law of the Lord is perfect, refreshing the soul.” — Psalm 19:7",
+  "“How can a young person stay on the path of purity? By living according to your word.” — Psalm 119:9",
 ];
 // Journal prompt sets — cycled per day so the same four prompts don't repeat forever
 const JOURNAL_PROMPT_SETS = [
@@ -4041,9 +4041,10 @@ function buildShareCardCanvas(day, sprints, totalDays, streak, isFinal) {
     ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 975);
   }
 
-  const encText = ENC_POOL[(day - 1) % ENC_POOL.length] || 'One chapter at a time.';
-  ctx.font = `italic 500 56px ${stack}`; ctx.globalAlpha = 0.9;
-  wrapCenteredText(ctx, `"${encText}"`, W / 2, 1300, W - 140, 76);
+  // Entries already carry their own quote marks + reference, so no extra wrapping quotes here.
+  const encText = ENC_POOL[(day - 1) % ENC_POOL.length] || '“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105';
+  ctx.font = `italic 500 48px ${stack}`; ctx.globalAlpha = 0.9;
+  wrapCenteredText(ctx, encText, W / 2, 1290, W - 140, 62);
   ctx.globalAlpha = 1;
 
   ctx.font = `600 46px ${stack}`; ctx.globalAlpha = 0.85;
