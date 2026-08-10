@@ -966,11 +966,11 @@ function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
 
 // ----- Encouragements -----
 // Every entry pairs a short scripture quote with its reference, so the daily
-// encouragement doubles as a reminder of why the habit matters. Five themes:
-// the word of God (heavy on Psalm 119), the voice of God, wisdom, God's
-// counsel, and Jesus/the word as the bread of life — a large enough pool that
-// even the longest plan (170 days) doesn't repeat an entry more than a
-// couple of times.
+// encouragement doubles as a reminder of why the habit matters. 212 entries
+// across the word of God (heavy on Psalm 119), the voice of God, wisdom,
+// God's counsel, and Jesus/the word as the bread of life — picked per user
+// per day (see dailyScripture below), not in array order, so which one shows
+// up is never predictable from one visit to the next.
 const ENC_POOL = [
   "“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105",
   "“I have hidden your word in my heart that I might not sin against you.” — Psalm 119:11",
@@ -1048,6 +1048,156 @@ const ENC_POOL = [
   "“I have treasured the words of his mouth more than my daily bread.” — Job 23:12",
   "“A famine... not a famine of food... but a famine of hearing the words of the Lord.” — Amos 8:11",
   "“This is my body, given for you; do this in remembrance of me.” — Luke 22:19",
+  // ----- More of Psalm 119 -----
+  "“Give me understanding, so that I may keep your law and obey it with all my heart.” — Psalm 119:34",
+  "“Turn my eyes away from worthless things; preserve my life according to your word.” — Psalm 119:37",
+  "“Then I can answer anyone who taunts me, for I trust in your word.” — Psalm 119:42",
+  "“Never take your word of truth from my mouth, for I have put my hope in your laws.” — Psalm 119:43",
+  "“Remember your word to your servant, for you have given me hope.” — Psalm 119:49",
+  "“You are my portion, Lord; I have promised to obey your words.” — Psalm 119:57",
+  "“At midnight I rise to give you thanks for your righteous laws.” — Psalm 119:62",
+  "“Before I was afflicted I went astray, but now I obey your word.” — Psalm 119:67",
+  "“May those who fear you rejoice when they see me, for I have put my hope in your word.” — Psalm 119:74",
+  "“My soul faints with longing for your salvation, but I have put my hope in your word.” — Psalm 119:81",
+  "“I have more insight than all my teachers, for I meditate on your statutes.” — Psalm 119:99",
+  "“I have more understanding than the elders, for I obey your precepts.” — Psalm 119:100",
+  "“I have kept my feet from every evil path so that I might obey your word.” — Psalm 119:101",
+  "“I gain understanding from your precepts; therefore I hate every wrong path.” — Psalm 119:104",
+  "“I have suffered much; preserve my life, Lord, according to your word.” — Psalm 119:107",
+  "“Your statutes are my heritage forever; they are the joy of my heart.” — Psalm 119:111",
+  "“Sustain me, my God, according to your promise, and I will live.” — Psalm 119:116",
+  "“Your statutes are wonderful; therefore I obey them.” — Psalm 119:129",
+  "“My eyes stay open through the watches of the night, that I may meditate on your promises.” — Psalm 119:148",
+  "“Yet you are near, Lord, and all your commands are true.” — Psalm 119:151",
+  "“Long ago I learned from your statutes that you established them to last forever.” — Psalm 119:152",
+  "“I rejoice in your promise like one who finds great spoil.” — Psalm 119:162",
+  "“May my cry come before you, Lord; give me understanding according to your word.” — Psalm 119:169",
+  "“May my tongue sing of your word, for all your commands are righteous.” — Psalm 119:172",
+  "“I have strayed like a lost sheep; seek your servant, for I have not forgotten your commands.” — Psalm 119:176",
+  "“I meditate on your precepts and consider your ways.” — Psalm 119:15",
+  "“I reach out for your commands, which I love, that I may meditate on your decrees.” — Psalm 119:48",
+  // ----- The word of God — rest of the Old Testament -----
+  "“Look in the scroll of the Lord and read: none of these will be missing.” — Isaiah 34:16",
+  "“This is the one I esteem: he who is humble and contrite in spirit, and trembles at my word.” — Isaiah 66:2",
+  "“His word is in my heart like a fire, a fire shut up in my bones.” — Jeremiah 20:9",
+  "“Is not my word like fire, declares the Lord, and like a hammer that breaks a rock in pieces?” — Jeremiah 23:29",
+  "“Son of man, eat what is before you, eat this scroll; then go and speak to the house of Israel.” — Ezekiel 3:1",
+  "“Write down the revelation and make it plain on tablets so that a herald may run with it.” — Habakkuk 2:2",
+  "“My son, pay attention to what I say... they are life to those who find them and health to one's whole body.” — Proverbs 4:20–22",
+  "“This command is a lamp, this teaching is a light, and correction and instruction are the way to life.” — Proverbs 6:23",
+  "“They read from the Book of the Law of God, making it clear and giving the meaning so that the people could understand what was being read.” — Nehemiah 8:8",
+  "“The word is very near you; it is in your mouth and in your heart so you may obey it.” — Deuteronomy 30:14",
+  "“They are not just idle words for you — they are your life.” — Deuteronomy 32:47",
+  "“Impress these commandments on your children. Talk about them when you sit at home and when you walk along the road.” — Deuteronomy 6:6–7",
+  "“Fix these words of mine in your hearts and minds.” — Deuteronomy 11:18",
+  "“Not one of all the good promises the Lord your God gave you has failed.” — Joshua 23:14",
+  "“Hilkiah the high priest said, ‘I have found the Book of the Law in the temple of the Lord.’” — 2 Kings 22:8",
+  // ----- The word of God — New Testament -----
+  "“Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.” — 2 Timothy 2:15",
+  "“Till I come, give attendance to reading, to exhortation, to doctrine.” — 1 Timothy 4:13",
+  "“Sanctify them by the truth; your word is truth.” — John 17:17",
+  "“He chose to give us birth through the word of truth, that we might be a kind of firstfruits of all he created.” — James 1:18",
+  "“Humbly accept the word planted in you, which can save you.” — James 1:21",
+  "“Whoever listens to the word but does not do what it says is like someone who looks at his face in a mirror and, after looking at himself, goes away and immediately forgets what he looks like.” — James 1:23–24",
+  "“Like newborn babies, crave pure spiritual milk, so that by it you may grow up in your salvation.” — 1 Peter 2:2",
+  "“The seed is the word of God.” — Luke 8:11",
+  "“The farmer sows the word.” — Mark 4:14",
+  "“The seed falling on good soil refers to someone who hears the word and understands it.” — Matthew 13:23",
+  "“They examined the Scriptures every day to see if what Paul said was true.” — Acts 17:11",
+  "“We will give our attention to prayer and the ministry of the word.” — Acts 6:4",
+  "“I commit you to God and to the word of his grace, which can build you up.” — Acts 20:32",
+  "“We have the word of the prophets made more certain, and you will do well to pay attention to it, as to a light shining in a dark place.” — 2 Peter 1:19",
+  "“Prophets, though human, spoke from God as they were carried along by the Holy Spirit.” — 2 Peter 1:21",
+  "“You accepted it not as a human word, but as it actually is, the word of God, which is indeed at work in you who believe.” — 1 Thessalonians 2:13",
+  "“The Son... sustaining all things by his powerful word.” — Hebrews 1:3",
+  "“Blessed is the one who reads aloud the words of this prophecy, and blessed are those who hear it and take to heart what is written in it.” — Revelation 1:3",
+  "“His name is called The Word of God.” — Revelation 19:13",
+  "“You study the Scriptures diligently because you think that in them you have eternal life. These are the very Scriptures that testify about me.” — John 5:39",
+  // ----- The voice of God -----
+  "“His sheep follow him because they know his voice.” — John 10:4",
+  "“They too will listen to my voice, and there shall be one flock and one shepherd.” — John 10:16",
+  "“Today, if only you would hear his voice: ‘Do not harden your hearts.’” — Psalm 95:7–8",
+  "“Speak, Lord, for your servant is listening.” — 1 Samuel 3:9",
+  "“For God does speak — now one way, now another — though no one perceives it.” — Job 33:14",
+  "“Now if you obey me fully and keep my covenant... you will be my treasured possession.” — Exodus 19:5",
+  "“You heard the sound of words but saw no form; there was only a voice.” — Deuteronomy 4:12",
+  "“Everyone on the side of truth listens to me.” — John 18:37",
+  "“Whoever has ears, let them hear what the Spirit says to the churches.” — Revelation 3:22",
+  "“If my people would only listen to me, if Israel would only follow my ways!” — Psalm 81:13",
+  // ----- More of Christ / the word as bread -----
+  "“Sir, they said, ‘Always give us this bread.’” — John 6:34",
+  "“This is the bread that comes down from heaven, which anyone may eat and not die.” — John 6:50",
+  "“Whoever feeds on me will live because of me.” — John 6:57",
+  "“Taking the five loaves and the two fish and looking up to heaven, he gave thanks and broke the loaves.” — Matthew 14:19",
+  "“They told what had happened on the way, and how Jesus was recognized by them when he broke the bread.” — Luke 24:35",
+  "“Because there is one loaf, we, who are many, are one body, for we all share the one loaf.” — 1 Corinthians 10:17",
+  "“Why spend money on what is not bread, and your labor on what does not satisfy?” — Isaiah 55:2",
+  "“Come, eat my food and drink the wine I have mixed.” — Proverbs 9:5",
+  // ----- More wisdom -----
+  "“Wisdom will enter your heart, and knowledge will be pleasant to your soul.” — Proverbs 2:10",
+  "“Trust in the Lord with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.” — Proverbs 3:5–6",
+  "“Wisdom is more precious than rubies, and nothing you desire can compare with her.” — Proverbs 8:11",
+  "“Those who find me find life and receive favor from the Lord.” — Proverbs 8:35",
+  "“Walk with the wise and become wise.” — Proverbs 13:20",
+  "“The one who gets wisdom loves life; the one who cherishes understanding will soon prosper.” — Proverbs 19:8",
+  "“Wisdom is a shelter as money is a shelter, but the advantage of knowledge is this: wisdom preserves those who have it.” — Ecclesiastes 7:12",
+  "“The fear of the Lord — that is wisdom, and to shun evil is understanding.” — Job 28:28",
+  "“The foolishness of God is wiser than human wisdom.” — 1 Corinthians 1:25",
+  "“We declare God's wisdom, a mystery that has been hidden and that God destined for our glory before time began.” — 1 Corinthians 2:7",
+  "“May the God of our Lord Jesus Christ give you the Spirit of wisdom and revelation, so that you may know him better.” — Ephesians 1:17",
+  "“We ask God to fill you with the knowledge of his will through all the wisdom and understanding that the Spirit gives.” — Colossians 1:9",
+  "“The wisdom that comes from heaven is first of all pure; then peace-loving, considerate, submissive, full of mercy and good fruit.” — James 3:17",
+  "“Wisdom and power are his... he gives wisdom to the wise and knowledge to the discerning.” — Daniel 2:20–21",
+  "“God gave Solomon wisdom and very great insight, and a breadth of understanding as measureless as the sand on the seashore.” — 1 Kings 4:29",
+  // ----- More of God's counsel -----
+  "“May he give you the desire of your heart and make all your plans succeed.” — Psalm 20:4",
+  "“The Lord confides in those who fear him; he makes his covenant known to them.” — Psalm 25:14",
+  "“The plans of the Lord stand firm forever, the purposes of his heart through all generations.” — Psalm 33:11",
+  "“My purpose will stand, and I will do all that I please.” — Isaiah 46:10",
+  "“You have done wonderful things, plans formed of old, faithful and sure.” — Isaiah 25:1",
+  "“For I know the plans I have for you, declares the Lord, plans to prosper you and not to harm you.” — Jeremiah 29:11",
+  "“The way of fools seems right to them, but the wise listen to advice.” — Proverbs 12:15",
+  "“The purposes of a person's heart are deep waters, but one who has insight draws them out.” — Proverbs 20:5",
+  "“The pleasantness of a friend springs from their heartfelt advice.” — Proverbs 27:9",
+  "“In him we were also chosen... according to the plan of him who works out everything in conformity with the purpose of his will.” — Ephesians 1:11",
+  // ----- Diligence in reading and meditating on scripture -----
+  "“Set your minds on things above, not on earthly things.” — Colossians 3:2",
+  "“Whatever is true, whatever is noble, whatever is right... think about such things.” — Philippians 4:8",
+  "“Ezra had devoted himself to the study and observance of the Law of the Lord, and to teaching its decrees and laws in Israel.” — Ezra 7:10",
+  "“He read it aloud from daybreak till noon... and all the people listened attentively to the Book of the Law.” — Nehemiah 8:3",
+  "“She had a sister called Mary, who sat at the Lord's feet listening to what he said.” — Luke 10:39",
+  "“Mary has chosen what is better, and it will not be taken away from her.” — Luke 10:42",
+  "“It is to be with him, and he is to read it all the days of his life so that he may learn to revere the Lord.” — Deuteronomy 17:19",
+  "“Then those who feared the Lord talked with each other, and the Lord listened and heard. A scroll of remembrance was written.” — Malachi 3:16",
+  "“From infancy you have known the Holy Scriptures, which are able to make you wise for salvation through faith in Christ Jesus.” — 2 Timothy 3:15",
+  "“So that the servant of God may be thoroughly equipped for every good work.” — 2 Timothy 3:17",
+  // ----- More word-of-God imagery — light, seed, sword, water, mirror -----
+  "“To make her holy, cleansing her by the washing with water through the word.” — Ephesians 5:26",
+  "“You are already clean because of the word I have spoken to you.” — John 15:3",
+  "“He must hold firmly to the trustworthy message as it has been taught, so that he can encourage others by sound doctrine.” — Titus 1:9",
+  "“For everything that was written in the past was written to teach us, so that through the endurance taught in the Scriptures... we might have hope.” — Romans 15:4",
+  "“Do not go beyond what is written.” — 1 Corinthians 4:6",
+  "“Scripture foresaw that God would justify the Gentiles by faith, and announced the gospel in advance to Abraham.” — Galatians 3:8",
+  "“I want you to recall the words spoken in the past by the holy prophets and the command given by our Lord and Savior through your apostles.” — 2 Peter 3:2",
+  "“The very words I have spoken will condemn them at the last day.” — John 12:48",
+  "“Anyone who loves me will obey my teaching.” — John 14:23",
+  "“If you remain in me and my words remain in you, ask whatever you wish, and it will be done for you.” — John 15:7",
+  "“That which was from the beginning, which we have heard, which we have seen with our eyes... this we proclaim concerning the Word of life.” — 1 John 1:1",
+  "“I write to you, young men, because you are strong, and the word of God lives in you.” — 1 John 2:14",
+  // ----- Statutes, testimony, precepts, promises -----
+  "“The precepts of the Lord are right, giving joy to the heart; the commands of the Lord are radiant, giving light to the eyes.” — Psalm 19:8",
+  "“The decrees of the Lord are firm, and all of them are righteous. They are more precious than gold... sweeter also than honey.” — Psalm 19:9–10",
+  "“The words of the Lord are flawless, like silver purified in a crucible, like gold refined seven times.” — Psalm 12:6",
+  "“As for God, his way is perfect: the Lord's word is flawless; he shields all who take refuge in him.” — Psalm 18:30",
+  "“You have exalted above all things your name and your word.” — Psalm 138:2",
+  "“Have I not written thirty sayings for you, sayings of counsel and knowledge, teaching you to know what is true and dependable?” — Proverbs 22:20–21",
+  "“Consult God's instruction and the testimony of warning. If anyone does not speak according to this word, they have no light of dawn.” — Isaiah 8:20",
+  "“All this also comes from the Lord Almighty, whose plan is wonderful, whose wisdom is magnificent.” — Isaiah 28:29",
+  "“He has shown you, O mortal, what is good. And what does the Lord require of you? To act justly and to love mercy and to walk humbly with your God.” — Micah 6:8",
+  "“They made their hearts as hard as flint and would not listen to the law or to the words that the Lord Almighty had sent by his Spirit.” — Zechariah 7:12",
+  "“For no word from God will ever fail.” — Luke 1:37",
+  "“God is not human, that he should lie... Does he speak and then not act? Does he promise and not fulfill?” — Numbers 23:19",
+  "“In the hope of eternal life, which God, who does not lie, promised before the beginning of time.” — Titus 1:2",
 ];
 // Journal prompt sets — cycled per day so the same four prompts don't repeat forever
 const JOURNAL_PROMPT_SETS = [
@@ -1082,39 +1232,32 @@ const COMEBACK_LINES = [
   "The Word doesn't keep score, ${name}. Just open and begin.",
   "Right where you left off, ${name}. Let's go.",
 ];
-// Tier-based variants — cycled by dayIdx so messages don't lock for weeks at a time.
-// Each tier has several variants, plus we mix in ENC_POOL every third day for variety.
-const TIER_NEAR_FINISH = [
-  "${name}, the finish line is in sight.",
-  "${name}, just a few sprints left. Savour them.",
-  "Last lap, ${name}. Beautifully done.",
-  "${name}, almost home. Don't rush the closing chapters.",
-];
-const TIER_HOME_STRAIGHT = [
-  "Home straight, ${name} — keep pressing on.",
-  "${name}, three-quarters done. Steady on.",
-  "${name}, you can see the finish from here. One sprint at a time.",
-  "${name}, the heaviest lifting is behind you. Keep going.",
-];
-const TIER_HALFWAY = [
-  "Halfway through, ${name} — brilliant work.",
-  "${name}, halfway home. The Word is shaping you.",
-  "More than half done, ${name}. Don't slow down now.",
-  "${name}, the back half begins. Keep showing up.",
-];
-const TIER_QUARTER = [
-  "Solid progress, ${name}. Keep the rhythm.",
-  "${name}, you're a quarter of the way there. Quietly faithful work.",
-  "${name}, momentum is building. One sprint at a time.",
-  "${name}, look at that — past 25%. Keep showing up.",
-  "${name}, you're settling into a rhythm. That's the win.",
-];
-function pickFromTier(arr, name, dayIdx) {
-  const tpl = arr[dayIdx % arr.length];
-  return tpl.replace(/\$\{name\}/g, name);
+// Tiny stable string hash (djb2-ish) — turns any string into a positive 32-bit
+// int deterministically, so the same input always produces the same output
+// (no Math.random involved) while looking unrelated to that input at a glance.
+function hashStr(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return h >>> 0;
+}
+// A per-device/per-account seed so two different readers don't see the same
+// verse on the same day. Signed-in users key off their Firebase uid; guests
+// get a random id generated once and persisted, same idea as a cookie.
+function encouragementSeed() {
+  if (currentUser?.uid) return currentUser.uid;
+  if (!state.encSeed) { state.encSeed = Math.random().toString(36).slice(2); save(); }
+  return state.encSeed;
+}
+// The scripture shown today: seeded by (this reader + today's date), so it's
+// stable all day if you reopen the app, but there's no way to predict which
+// of the 212 entries comes next — it isn't cycling through the array in
+// order, and tomorrow's pick has no relationship to today's.
+function dailyScripture() {
+  const seed = `${encouragementSeed()}|${todayISO()}`;
+  return ENC_POOL[hashStr(seed) % ENC_POOL.length];
 }
 
-function encouragementFor(name, percent, dayIdx, isFinal) {
+function encouragementFor(name, dayIdx, isFinal) {
   if (isFinal) return `VICTORY — you've read the whole Bible! Well done, ${name}!`;
   // Comeback message takes priority when a user returns after a missed day
   if (isComebackDay()) {
@@ -1122,13 +1265,7 @@ function encouragementFor(name, percent, dayIdx, isFinal) {
     return tpl.replace(/\$\{name\}/g, name);
   }
   if (dayIdx === 0) return `Welcome in, ${name}. Let's begin.`;
-  // Mix in the general ENC_POOL every third day so even high-tier readers see variety
-  if (dayIdx % 3 === 0) return ENC_POOL[Math.floor(dayIdx / 3) % ENC_POOL.length];
-  if (percent >= 95) return pickFromTier(TIER_NEAR_FINISH, name, dayIdx);
-  if (percent >= 75) return pickFromTier(TIER_HOME_STRAIGHT, name, dayIdx);
-  if (percent >= 50) return pickFromTier(TIER_HALFWAY, name, dayIdx);
-  if (percent >= 25) return pickFromTier(TIER_QUARTER, name, dayIdx);
-  return ENC_POOL[dayIdx % ENC_POOL.length];
+  return dailyScripture();
 }
 // True if the user last marked something done 2+ days ago (i.e. they skipped at least one day)
 function isComebackDay() {
@@ -2702,13 +2839,13 @@ function renderToday() {
   const day = Math.min(totalDays, Math.max(1, state.viewDay || 1));
   const sprints = days[day - 1]; const done = getCompletion(day);
   const doneCount = done.filter(Boolean).length; const isFinal = day === totalDays;
-  const p = planProgress(); const finished = isPlanFinished();
+  const finished = isPlanFinished();
   const journal = getJournal(day); const name = displayName();
   const dayChapters = sprints.reduce((a, s) => a + s.chapters, 0);
   // "Victory" should only ever fire when the WHOLE plan is done (finished),
   // not just because the reader is viewing the last day and ticked it —
   // an earlier day can still have a gap while this one looks complete.
-  const enc = encouragementFor(name, p.percent, day - 1, isFinal && finished);
+  const enc = encouragementFor(name, day - 1, isFinal && finished);
   const prompts = getJournalPrompts(day);
 
   const initialCredit = state.currentPlan.creditedByDay?.[day] || 0;
@@ -4036,8 +4173,8 @@ function shareDay(day) {
   const days = currentPlanDays(); const sprints = days[day - 1];
   const total = sprints.reduce((a, s) => a + s.chapters, 0);
   const isFinal = day === days.length;
-  // Use a generic (no-name) encouragement for shared posts
-  const genericEnc = ENC_POOL[(day - 1) % ENC_POOL.length] || 'One chapter at a time.';
+  // Same verse the reader is seeing today on the day view (see dailyScripture)
+  const genericEnc = dailyScripture();
   const lines = [
     `\uD83D\uDCD6 BIBLE SPRINT \u2014 Day ${day} of ${days.length}${isFinal?' (Final)':''}`, '',
     ...sprints.map((s, i) => `Sprint ${i+1}: ${s.text}`), '',
@@ -4088,8 +4225,9 @@ function buildShareCardCanvas(day, sprints, totalDays, streak, isFinal) {
     ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 975);
   }
 
-  // Entries already carry their own quote marks + reference, so no extra wrapping quotes here.
-  const encText = ENC_POOL[(day - 1) % ENC_POOL.length] || '“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105';
+  // Same verse the reader is seeing today on the day view (see dailyScripture) —
+  // entries already carry their own quote marks + reference, so no extra wrapping quotes here.
+  const encText = dailyScripture();
   ctx.font = `italic 500 48px ${stack}`; ctx.globalAlpha = 0.9;
   wrapCenteredText(ctx, encText, W / 2, 1290, W - 140, 62);
   ctx.globalAlpha = 1;
