@@ -965,15 +965,16 @@ function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
 }
 
 // ----- Encouragements -----
-// Every entry pairs a short scripture quote about the Word of God itself with its
-// reference, so the daily encouragement doubles as a reminder of why the habit
-// matters. Heavy on Psalm 119 (176 verses almost entirely about God's word/law),
-// plus the other classic "word of God" passages from across the rest of the Bible.
+// Every entry pairs a short scripture quote with its reference, so the daily
+// encouragement doubles as a reminder of why the habit matters. Four themes:
+// the word of God (heavy on Psalm 119), the voice of God, wisdom, and God's
+// counsel — a large enough pool that even the longest plan (170 days) doesn't
+// repeat an entry more than a couple of times.
 const ENC_POOL = [
   "“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105",
   "“I have hidden your word in my heart that I might not sin against you.” — Psalm 119:11",
   "“Oh, how I love your law! I meditate on it all day long.” — Psalm 119:97",
-  "“Your word is a lamp for today — and this sprint is your light.” — Psalm 119:105",
+  "“My comfort in my suffering is this: your promise preserves my life.” — Psalm 119:50",
   "“How sweet are your words to my taste, sweeter than honey to my mouth.” — Psalm 119:103",
   "“The unfolding of your words gives light; it gives understanding to the simple.” — Psalm 119:130",
   "“I will not neglect your word.” — Psalm 119:16",
@@ -1001,6 +1002,40 @@ const ENC_POOL = [
   "“Man does not live on bread alone but on every word that comes from the mouth of the Lord.” — Deuteronomy 8:3",
   "“The law of the Lord is perfect, refreshing the soul.” — Psalm 19:7",
   "“How can a young person stay on the path of purity? By living according to your word.” — Psalm 119:9",
+  "“Your promises have been thoroughly tested, and your servant loves them.” — Psalm 119:140",
+  "“The grass withers and the flowers fall, but the word of our God endures forever.” — Isaiah 40:8",
+  "“Heaven and earth will pass away, but my words will never pass away.” — Mark 13:31",
+  "“By the word of the Lord the heavens were made.” — Psalm 33:6",
+  "“The word of the Lord is right and true; he is faithful in all he does.” — Psalm 33:4",
+  "“Take up... the sword of the Spirit, which is the word of God.” — Ephesians 6:17",
+  "“He sent out his word and healed them.” — Psalm 107:20",
+  "“Do not merely listen to the word... do what it says.” — James 1:22",
+  "“Blessed rather are those who hear the word of God and obey it.” — Luke 11:28",
+  // ----- The voice of God -----
+  "“My sheep listen to my voice; I know them, and they follow me.” — John 10:27",
+  "“After the fire came a gentle whisper.” — 1 Kings 19:12",
+  "“The voice of the Lord is powerful; the voice of the Lord is majestic.” — Psalm 29:4",
+  "“Whether you turn to the right or to the left, your ears will hear a voice behind you, saying, ‘This is the way; walk in it.’” — Isaiah 30:21",
+  "“Here I am! I stand at the door and knock. If anyone hears my voice and opens the door, I will come in.” — Revelation 3:20",
+  "“Today, if you hear his voice, do not harden your hearts.” — Hebrews 3:7–8",
+  "“Whoever belongs to God hears what God says.” — John 8:47",
+  // ----- Wisdom -----
+  "“The Lord gives wisdom; from his mouth come knowledge and understanding.” — Proverbs 2:6",
+  "“The fear of the Lord is the beginning of wisdom.” — Proverbs 9:10",
+  "“If any of you lacks wisdom, you should ask God, who gives generously to all.” — James 1:5",
+  "“Blessed are those who find wisdom, those who gain understanding.” — Proverbs 3:13",
+  "“Wisdom is supreme; therefore get wisdom.” — Proverbs 4:7",
+  "“The fear of the Lord is the beginning of knowledge, but fools despise wisdom and instruction.” — Proverbs 1:7",
+  "“How much better to get wisdom than gold, to get insight rather than silver!” — Proverbs 16:16",
+  "“In him are hidden all the treasures of wisdom and knowledge.” — Colossians 2:3",
+  // ----- God's counsel -----
+  "“I will praise the Lord, who counsels me; even at night my heart instructs me.” — Psalm 16:7",
+  "“I will instruct you and teach you in the way you should go; I will counsel you with my loving eye on you.” — Psalm 32:8",
+  "“Many are the plans in a person's heart, but it is the Lord's purpose that prevails.” — Proverbs 19:21",
+  "“He will be called Wonderful Counselor, Mighty God, Everlasting Father, Prince of Peace.” — Isaiah 9:6",
+  "“Plans fail for lack of counsel, but with many advisers they succeed.” — Proverbs 15:22",
+  "“You guide me with your counsel, and afterward you will take me into glory.” — Psalm 73:24",
+  "“Call to me and I will answer you and tell you great and unsearchable things you do not know.” — Jeremiah 33:3",
 ];
 // Journal prompt sets — cycled per day so the same four prompts don't repeat forever
 const JOURNAL_PROMPT_SETS = [
