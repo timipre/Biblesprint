@@ -1446,10 +1446,14 @@ let suppressRenderFromSnapshot = false;
 // lost) from an ordinary page-reload session restore (where it's expected
 // and safe for cloud data to populate local state).
 let pendingInteractiveSignIn = false;
-// Land on the day the reader left off the first time the app paints with a
-// plan (covers guests, cloud-hydrated users and local-only mode). After that
-// the reader is free to navigate with Prev/Next without being snapped back.
-let viewDayInitialized = false;
+// Keeps the day view auto-synced to openingDay() (progress-locked "today")
+// across every data refresh — initial paint, Firestore hydration, and any
+// later live-snapshot update. Firestore's own local cache can itself be
+// stale on a device that hasn't synced in a while, so "sync once at boot"
+// isn't enough; this instead keeps following until the reader explicitly
+// navigates away with Prev/Next/calendar-pick, at which point it stops so
+// they aren't snapped back mid-browse.
+let followingToday = true;
 
 // One-time migration for accounts that predate the activityDates streak log:
 // seed a single entry from the old single-value lastActiveDate so their streak
@@ -2014,11 +2018,11 @@ function render() {
     renderFAB();
     return;
   }
-  // First paint with a plan loaded → open on today's scheduled reading, so the
-  // reader lands on the current day automatically instead of Day 1.
-  if (!viewDayInitialized) {
+  // Keep the day view pointed at today's scheduled reading until the reader
+  // manually navigates away — see followingToday's declaration for why this
+  // can't just be a one-time "first paint" check.
+  if (followingToday) {
     state.viewDay = openingDay();
-    viewDayInitialized = true;
   }
   renderBanner(); renderTopbar(); renderProgress(); renderNav(); renderMain();
   renderFAB();
@@ -2421,7 +2425,7 @@ function renderPaceScreen() {
     state.pendingStartDate = null;
     state.pendingCredit = 0;
     state.pendingCreditReason = null;
-    state.viewDay = openingDay(); state.tab = 'today'; viewDayInitialized = true;
+    state.viewDay = openingDay(); state.tab = 'today'; followingToday = true;
     save(); render();
     track('plan_started', { pace: chosen, order: chosenOrder, credited_sprints: actualCredited });
     const msg = actualCredited > 0
@@ -2538,7 +2542,7 @@ function renderNav() {
   document.querySelectorAll('.nav-tab').forEach(el => {
     el.addEventListener('click', () => {
       state.tab = el.dataset.tab;
-      if (state.tab === 'today') state.viewDay = openingDay();
+      if (state.tab === 'today') { followingToday = true; state.viewDay = openingDay(); }
       save(); render();
     });
   });
@@ -2766,9 +2770,9 @@ function renderToday() {
       openAudioForSprint(sprints[idx]);
     });
   });
-  $('#prev-day')?.addEventListener('click', () => { state.viewDay = Math.max(1, day - 1); save(); render(); });
-  $('#next-day')?.addEventListener('click', () => { state.viewDay = Math.min(totalDays, day + 1); save(); render(); });
-  $('#jump-today')?.addEventListener('click', () => { state.viewDay = openingDay(); save(); render(); });
+  $('#prev-day')?.addEventListener('click', () => { followingToday = false; state.viewDay = Math.max(1, day - 1); save(); render(); });
+  $('#next-day')?.addEventListener('click', () => { followingToday = false; state.viewDay = Math.min(totalDays, day + 1); save(); render(); });
+  $('#jump-today')?.addEventListener('click', () => { followingToday = true; state.viewDay = openingDay(); save(); render(); });
   $('#share-btn').addEventListener('click', () => shareDay(day));
   $('#share-journal-btn')?.addEventListener('click', () => shareJournal(day));
   $('#invite-friend-btn')?.addEventListener('click', () => shareInvite());
@@ -2985,7 +2989,7 @@ function renderOverview() {
     </div>`;
   document.querySelectorAll('.overview-item').forEach(el => {
     el.addEventListener('click', () => {
-      state.viewDay = parseInt(el.dataset.day, 10); state.tab = 'today'; save(); render();
+      followingToday = false; state.viewDay = parseInt(el.dataset.day, 10); state.tab = 'today'; save(); render();
     });
   });
 }
@@ -4093,11 +4097,9 @@ function boot() {
         authVisible = false;
         try { await hydrateFromFirestore(user.uid); } catch (e) { console.error(e); }
         syncCircleSubscriptions();
-        // Real progress data has just landed — re-point the day view at it even
-        // if the 700ms fallback already rendered (and locked in) a premature
-        // guess beforehand. Without this, a slow Firestore fetch permanently
-        // strands the view on Day 1 for the rest of the session.
-        state.viewDay = openingDay(); viewDayInitialized = true;
+        // render()'s followingToday guard re-syncs state.viewDay to the real
+        // progress data now that it's landed, regardless of whatever the
+        // 700ms fallback (or a stale Firestore offline-cache read) painted first.
         rendered = true; render();
         scheduleReminder();
       } else {
