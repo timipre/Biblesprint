@@ -966,10 +966,11 @@ function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
 
 // ----- Encouragements -----
 // Every entry pairs a short scripture quote with its reference, so the daily
-// encouragement doubles as a reminder of why the habit matters. Four themes:
-// the word of God (heavy on Psalm 119), the voice of God, wisdom, and God's
-// counsel — a large enough pool that even the longest plan (170 days) doesn't
-// repeat an entry more than a couple of times.
+// encouragement doubles as a reminder of why the habit matters. Five themes:
+// the word of God (heavy on Psalm 119), the voice of God, wisdom, God's
+// counsel, and Jesus/the word as the bread of life — a large enough pool that
+// even the longest plan (170 days) doesn't repeat an entry more than a
+// couple of times.
 const ENC_POOL = [
   "“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105",
   "“I have hidden your word in my heart that I might not sin against you.” — Psalm 119:11",
@@ -1036,6 +1037,17 @@ const ENC_POOL = [
   "“Plans fail for lack of counsel, but with many advisers they succeed.” — Proverbs 15:22",
   "“You guide me with your counsel, and afterward you will take me into glory.” — Psalm 73:24",
   "“Call to me and I will answer you and tell you great and unsearchable things you do not know.” — Jeremiah 33:3",
+  // ----- Jesus / the word as the bread of life -----
+  "“I am the bread of life. Whoever comes to me will never go hungry.” — John 6:35",
+  "“I am the living bread that came down from heaven. Whoever eats this bread will live forever.” — John 6:51",
+  "“The bread of God is the bread that comes down from heaven and gives life to the world.” — John 6:33",
+  "“This is the bread that came down from heaven... whoever feeds on this bread will live forever.” — John 6:58",
+  "“Do not work for food that spoils, but for food that endures to eternal life.” — John 6:27",
+  "“It is not Moses who has given you the bread from heaven, but it is my Father who gives you the true bread.” — John 6:32",
+  "“I will rain down bread from heaven for you.” — Exodus 16:4",
+  "“I have treasured the words of his mouth more than my daily bread.” — Job 23:12",
+  "“A famine... not a famine of food... but a famine of hearing the words of the Lord.” — Amos 8:11",
+  "“This is my body, given for you; do this in remembrance of me.” — Luke 22:19",
 ];
 // Journal prompt sets — cycled per day so the same four prompts don't repeat forever
 const JOURNAL_PROMPT_SETS = [
