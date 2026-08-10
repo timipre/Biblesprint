@@ -968,9 +968,11 @@ function buildCreditCompletion(totalCredit, sprintsPerDay, totalDays) {
 // Every entry pairs a short scripture quote with its reference, so the daily
 // encouragement doubles as a reminder of why the habit matters. 212 entries
 // across the word of God (heavy on Psalm 119), the voice of God, wisdom,
-// God's counsel, and Jesus/the word as the bread of life — picked per user
-// per day (see dailyScripture below), not in array order, so which one shows
-// up is never predictable from one visit to the next.
+// God's counsel, and Jesus/the word as the bread of life — assigned one per
+// plan-day via a reader-specific shuffle (see dailyScripture below), so each
+// day of a plan gets a fixed, distinct verse (no repeats within a plan, since
+// the pool comfortably exceeds even the longest 170-day plan) that's still
+// impossible to predict without knowing the shuffle.
 const ENC_POOL = [
   "“Your word is a lamp for my feet, a light on my path.” — Psalm 119:105",
   "“I have hidden your word in my heart that I might not sin against you.” — Psalm 119:11",
@@ -1240,21 +1242,54 @@ function hashStr(str) {
   for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   return h >>> 0;
 }
-// A per-device/per-account seed so two different readers don't see the same
-// verse on the same day. Signed-in users key off their Firebase uid; guests
-// get a random id generated once and persisted, same idea as a cookie.
+// A per-device/per-account seed so two different readers get a differently
+// shuffled order. Signed-in users key off their Firebase uid; guests get a
+// random id generated once and persisted, same idea as a cookie.
 function encouragementSeed() {
   if (currentUser?.uid) return currentUser.uid;
   if (!state.encSeed) { state.encSeed = Math.random().toString(36).slice(2); save(); }
   return state.encSeed;
 }
-// The scripture shown today: seeded by (this reader + today's date), so it's
-// stable all day if you reopen the app, but there's no way to predict which
-// of the 212 entries comes next — it isn't cycling through the array in
-// order, and tomorrow's pick has no relationship to today's.
-function dailyScripture() {
-  const seed = `${encouragementSeed()}|${todayISO()}`;
-  return ENC_POOL[hashStr(seed) % ENC_POOL.length];
+// Deterministic PRNG (mulberry32) — same 32-bit seed always produces the same
+// sequence of "random" numbers, which is what lets the shuffle below be both
+// unpredictable-looking and perfectly reproducible for a given reader+plan.
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function shuffledIndices(seedStr, n) {
+  const rand = mulberry32(hashStr(seedStr));
+  const arr = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+// The verse order is shuffled once per reader-per-plan (not per calendar day),
+// so Day 2 always shows the same verse whenever you view it, Day 4 always
+// shows a *different* one, and — since the pool (212) comfortably exceeds
+// even the longest plan (170 days) — no verse repeats within a single plan.
+// Which verse lands on which day is still unpredictable without knowing the
+// shuffle, and a new plan (new pace, or a fresh run) gets a fresh shuffle.
+let _scriptureOrderCache = null; let _scriptureOrderKey = null;
+function scriptureOrder() {
+  const plan = state.currentPlan;
+  const key = `${encouragementSeed()}|${plan?.startDate}|${plan?.pace}`;
+  if (_scriptureOrderKey !== key) {
+    _scriptureOrderCache = shuffledIndices(key, ENC_POOL.length);
+    _scriptureOrderKey = key;
+  }
+  return _scriptureOrderCache;
+}
+function dailyScripture(dayIdx) {
+  const order = scriptureOrder();
+  const i = ((dayIdx % order.length) + order.length) % order.length;
+  return ENC_POOL[order[i]];
 }
 
 function encouragementFor(name, dayIdx, isFinal) {
@@ -1265,7 +1300,7 @@ function encouragementFor(name, dayIdx, isFinal) {
     return tpl.replace(/\$\{name\}/g, name);
   }
   if (dayIdx === 0) return `Welcome in, ${name}. Let's begin.`;
-  return dailyScripture();
+  return dailyScripture(dayIdx);
 }
 // True if the user last marked something done 2+ days ago (i.e. they skipped at least one day)
 function isComebackDay() {
@@ -4173,8 +4208,8 @@ function shareDay(day) {
   const days = currentPlanDays(); const sprints = days[day - 1];
   const total = sprints.reduce((a, s) => a + s.chapters, 0);
   const isFinal = day === days.length;
-  // Same verse the reader is seeing today on the day view (see dailyScripture)
-  const genericEnc = dailyScripture();
+  // Same verse the reader sees on this day's view (see dailyScripture)
+  const genericEnc = dailyScripture(day - 1);
   const lines = [
     `\uD83D\uDCD6 BIBLE SPRINT \u2014 Day ${day} of ${days.length}${isFinal?' (Final)':''}`, '',
     ...sprints.map((s, i) => `Sprint ${i+1}: ${s.text}`), '',
@@ -4225,9 +4260,9 @@ function buildShareCardCanvas(day, sprints, totalDays, streak, isFinal) {
     ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 975);
   }
 
-  // Same verse the reader is seeing today on the day view (see dailyScripture) —
+  // Same verse the reader sees on this day's view (see dailyScripture) —
   // entries already carry their own quote marks + reference, so no extra wrapping quotes here.
-  const encText = dailyScripture();
+  const encText = dailyScripture(day - 1);
   ctx.font = `italic 500 48px ${stack}`; ctx.globalAlpha = 0.9;
   wrapCenteredText(ctx, encText, W / 2, 1290, W - 140, 62);
   ctx.globalAlpha = 1;
