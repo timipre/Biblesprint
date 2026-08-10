@@ -340,7 +340,7 @@ a, button, .nav-tab, .sprint-tick, [role="button"] { touch-action: manipulation;
 .cal-dow { font-size: 11px; color: var(--muted); text-align: center; font-weight: 700; padding-bottom: 4px; }
 .cal-cell {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  border-radius: 8px; font-size: 12px; font-weight: 700;
+  border-radius: 8px; font-size: 12px; font-weight: 700; position: relative;
 }
 .cal-cell.empty { visibility: hidden; }
 .cal-cell.out-of-plan { color: var(--muted); opacity: 0.35; }
@@ -351,6 +351,14 @@ a, button, .nav-tab, .sprint-tick, [role="button"] { touch-action: manipulation;
 .cal-cell.in-plan:hover { border-color: var(--accent); }
 .cal-cell.in-plan.done { background: var(--grad-action); color: white; border-color: transparent; }
 .cal-cell.in-plan.current { box-shadow: 0 0 0 2px var(--accent); }
+/* Small checkmark badge on completed days — keeps the date number itself always visible. */
+.cal-cell.in-plan.done::after {
+  content: '✓'; position: absolute; top: -5px; right: -5px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: #FFFFFF; color: var(--accent-dark);
+  font-size: 10px; font-weight: 800; line-height: 15px; text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
 
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
@@ -3065,7 +3073,7 @@ function renderCalendarGrid(days, current) {
       const expected = days[dayNum - 1]?.length || 0;
       const fullyDone = expected > 0 && getCompletion(dayNum).slice(0, expected).every(Boolean);
       const isCurrent = dayNum === current;
-      return `<div class="cal-cell in-plan ${fullyDone?'done':''} ${isCurrent?'current':''}" data-day="${dayNum}" title="Day ${dayNum}">${fullyDone ? '\u2713' : d.getDate()}</div>`;
+      return `<div class="cal-cell in-plan ${fullyDone?'done':''} ${isCurrent?'current':''}" data-day="${dayNum}" title="Day ${dayNum}">${d.getDate()}</div>`;
     }).join('');
     html += `
       <div class="cal-month">
