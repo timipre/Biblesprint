@@ -3920,35 +3920,35 @@ function buildShareCardCanvas(day, sprints, totalDays, streak, isFinal) {
 
   ctx.textAlign = 'center'; ctx.fillStyle = '#FFFFFF';
   const stack = '-apple-system, "Segoe UI", Roboto, sans-serif';
-  ctx.font = `700 48px ${stack}`; ctx.globalAlpha = 0.92;
-  ctx.fillText('BIBLE SPRINT', W / 2, 160); ctx.globalAlpha = 1;
+  ctx.font = `700 56px ${stack}`; ctx.globalAlpha = 0.92;
+  ctx.fillText('BIBLE SPRINT', W / 2, 180); ctx.globalAlpha = 1;
 
   const dayChapters = sprints.reduce((a, s) => a + s.chapters, 0);
   if (isFinal) {
-    ctx.font = `800 110px ${stack}`;
-    wrapCenteredText(ctx, 'Bible complete! 🎉', W / 2, 800, W - 160, 128);
-    ctx.font = `500 44px ${stack}`;
-    ctx.fillText(`Finished the whole Bible in ${totalDays} days`, W / 2, 1000);
+    ctx.font = `800 140px ${stack}`;
+    wrapCenteredText(ctx, 'Bible complete! 🎉', W / 2, 820, W - 140, 158);
+    ctx.font = `600 56px ${stack}`;
+    ctx.fillText(`Finished the whole Bible in ${totalDays} days`, W / 2, 1040);
   } else if (streak > 1) {
-    ctx.font = `800 220px ${stack}`;
-    ctx.fillText('🔥 ' + streak, W / 2, 800);
-    ctx.font = `600 52px ${stack}`;
-    ctx.fillText('day streak', W / 2, 890);
-    ctx.font = `500 40px ${stack}`;
-    ctx.fillText(`Day ${day} of ${totalDays} · ${dayChapters} chapters today`, W / 2, 990);
+    ctx.font = `800 260px ${stack}`;
+    ctx.fillText('🔥 ' + streak, W / 2, 820);
+    ctx.font = `700 66px ${stack}`;
+    ctx.fillText('day streak', W / 2, 980);
+    ctx.font = `600 48px ${stack}`;
+    ctx.fillText(`Day ${day} of ${totalDays} · ${dayChapters} chapters today`, W / 2, 1090);
   } else {
-    ctx.font = `800 160px ${stack}`;
-    ctx.fillText(`Day ${day}`, W / 2, 800);
-    ctx.font = `500 44px ${stack}`;
-    ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 900);
+    ctx.font = `800 210px ${stack}`;
+    ctx.fillText(`Day ${day}`, W / 2, 820);
+    ctx.font = `600 56px ${stack}`;
+    ctx.fillText(`of ${totalDays} · ${dayChapters} chapters today`, W / 2, 960);
   }
 
   const encText = ENC_POOL[(day - 1) % ENC_POOL.length] || 'One chapter at a time.';
-  ctx.font = `italic 400 38px ${stack}`; ctx.globalAlpha = 0.9;
-  wrapCenteredText(ctx, `"${encText}"`, W / 2, 1150, W - 220, 54);
+  ctx.font = `italic 500 48px ${stack}`; ctx.globalAlpha = 0.9;
+  wrapCenteredText(ctx, `"${encText}"`, W / 2, 1280, W - 180, 66);
   ctx.globalAlpha = 1;
 
-  ctx.font = `600 34px ${stack}`; ctx.globalAlpha = 0.85;
+  ctx.font = `600 40px ${stack}`; ctx.globalAlpha = 0.85;
   ctx.fillText('biblesprint.com', W / 2, H - 100);
   ctx.globalAlpha = 1;
   return canvas;
