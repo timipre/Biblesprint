@@ -2961,14 +2961,14 @@ function pauseAndChangePaceFlow() {
           <button class="btn" id="pause-back" style="flex:1;">Back</button>
           <button class="btn btn-primary" id="pause-confirm" style="flex:1;">Choose new pace</button>
         </div>
+        ${sprintsCompleted > 0 ? `<button class="btn" id="pause-confirm-fresh" style="color:var(--muted); font-size:13px;">Start over from Day 1 instead — don't carry over progress</button>` : ''}
       </div>
     </div></div>`;
   const close = () => $('#modal-root').innerHTML = '';
   $('#pause-back').addEventListener('click', close);
   $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') close(); });
   $('#pause-export').addEventListener('click', () => { exportJournal(); });
-  $('#pause-confirm').addEventListener('click', () => {
-    close();
+  const stashPausedRun = () => {
     if (sprintsCompleted > 0 || hasJournal) {
       state.pausedRuns = [{
         pausedAt: new Date().toISOString(),
@@ -2979,6 +2979,21 @@ function pauseAndChangePaceFlow() {
         sprintsCompleted,
       }, ...(state.pausedRuns || [])];
     }
+  };
+  $('#pause-confirm-fresh')?.addEventListener('click', () => {
+    close();
+    stashPausedRun();
+    state.pendingCreditReason = 'paused';
+    state.pendingStartDate = todayISO();
+    state.pendingCredit = 0;
+    state.currentPlan = null;
+    state.viewDay = 1;
+    save(); render();
+    toast('This run’s journal is kept under History. Pick a pace to start fresh from Day 1.');
+  });
+  $('#pause-confirm').addEventListener('click', () => {
+    close();
+    stashPausedRun();
     state.pendingCreditReason = 'paused';
     state.pendingStartDate = todayISO();
     state.pendingCredit = sprintsCompleted;
