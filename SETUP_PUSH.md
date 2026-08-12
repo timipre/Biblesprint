@@ -39,6 +39,13 @@ This is a pre-built PHP library (handles the push encryption/signing) — alread
 2. Upload the `vendor` folder from the `private/` folder in this project (drag the whole folder, or zip it first and use Hostinger's "upload zip, then extract" option if your browser struggles with a folder that has ~1,200 files in it — extraction is usually faster than a raw folder upload).
 3. When done, `private/` should contain both `firebase-service-account.json` (Part 1) and `vendor/` (this step), sitting next to (not inside) `public_html/`.
 
+### 2.1b The `private/vapid-private-key.txt` file
+
+The push signer needs the VAPID **private** key. Like the service-account JSON, it's a secret and lives in `private/` (outside the web root) — it is deliberately **not** in the Git repo.
+
+1. In File Manager, in the same `private` folder (one level above `public_html`), upload `private/vapid-private-key.txt` from this project — a one-line text file containing just the private key.
+2. When done, `private/` should contain `firebase-service-account.json`, `vendor/`, **and** `vapid-private-key.txt`.
+
 ### 2.2 `send-push-reminders.php`
 
 1. Go back into `public_html/`.
@@ -84,6 +91,6 @@ Same as email reminders: this runs entirely on your own Hostinger server against
 
 ## Changing things later
 
-**Rotate the VAPID keys**: only do this if you suspect they've leaked — every existing subscriber would need to re-enable notifications, since the old key stops being trusted. If you ever do, the new public key must be updated in *both* `app.html` (`VAPID_PUBLIC_KEY`) and `send-push-reminders.php` (`$VAPID_PUBLIC_KEY`/`$VAPID_PRIVATE_KEY`) together.
+**Rotate the VAPID keys**: only do this if you suspect they've leaked — every existing subscriber would need to re-enable notifications, since the old key stops being trusted. To rotate: generate a fresh keypair, then update the **public** key in *both* `app.html` (`VAPID_PUBLIC_KEY`) and `send-push-reminders.php` (`$VAPID_PUBLIC_KEY`), and replace the one-line `private/vapid-private-key.txt` (the private half is read from that gitignored file at runtime — never paste it into the PHP or commit it). You can generate a keypair with the bundled library: `php -r "require 'private/vendor/autoload.php'; print_r(Minishlink\WebPush\VAPID::createVapidKeys());"`.
 
 **Pause push reminders temporarily**: hPanel → Cron Jobs → disable the job. Re-enable any time.

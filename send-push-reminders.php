@@ -24,12 +24,21 @@ use Minishlink\WebPush\Subscription;
 $SERVICE_ACCOUNT_PATH = dirname(__DIR__) . '/private/firebase-service-account.json';
 $PROJECT_ID           = 'bible-sprint';
 
-// VAPID keypair — the public half is also embedded in app.html (VAPID_PUBLIC_KEY).
-// If you ever regenerate these, both places must be updated together, or every
-// existing subscription breaks and everyone has to re-enable notifications.
+// VAPID keypair. The public half is safe to embed and is also in app.html
+// (VAPID_PUBLIC_KEY). The PRIVATE half is a real secret and must never be
+// committed — it lives in private/vapid-private-key.txt (gitignored, outside
+// the web root), read at runtime below, exactly like the service-account JSON.
+// If you ever regenerate the keypair, update the public key in BOTH this file
+// and app.html together, replace private/vapid-private-key.txt, and note that
+// every existing subscription breaks and everyone must re-enable notifications.
 $VAPID_SUBJECT     = 'mailto:reminders@biblesprint.com';
-$VAPID_PUBLIC_KEY  = 'BPCK6wol4VWZqrovUGHZFGHaBAXuB2KPbSVqv6h95yxZJnrF5IhyRCGeOln7s3Jt5aAroE6Jp2QuAqfrvnTROtQ';
-$VAPID_PRIVATE_KEY = '***REMOVED-ROTATED-VAPID-KEY***';
+$VAPID_PUBLIC_KEY  = 'BF-ZGoc5gaweSOKA5wz6d2XTJZGvD8ai3z_4fJj8VYpPJ1ybxob_0hNtEND9rbqDpqJwiTE4UNPBYb1LgyGXWRM';
+$VAPID_PRIVATE_KEY_PATH = dirname(__DIR__) . '/private/vapid-private-key.txt';
+if (!is_readable($VAPID_PRIVATE_KEY_PATH)) {
+    fwrite(STDERR, "Missing VAPID private key at $VAPID_PRIVATE_KEY_PATH — see SETUP_PUSH.md.\n");
+    exit(1);
+}
+$VAPID_PRIVATE_KEY = trim(file_get_contents($VAPID_PRIVATE_KEY_PATH));
 
 // ============================================================
 // Bible data (must match app.html)
